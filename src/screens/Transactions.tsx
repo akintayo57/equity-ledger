@@ -3,7 +3,7 @@ import { useStore } from '../store';
 import { Card, CardContent } from '../components/ui/Cards';
 import { formatMoney } from '../utils';
 import { format } from 'date-fns';
-import { PlusCircle, Edit2, Trash2 } from 'lucide-react';
+import { PlusCircle, Edit2, Trash2, AlertTriangle } from 'lucide-react';
 import { Transaction, TransactionType, Currency } from '../types';
 import { ConfirmDialog, Modal } from '../components/ui/Modal';
 import { useLocation } from 'react-router-dom';
@@ -74,16 +74,32 @@ export const Transactions = () => {
                 <div className="flex justify-between items-center">
                   <div>
                     <div className="flex items-center space-x-2">
-                      <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full uppercase ${tx.type === 'BUY' ? 'bg-emerald-500/15 text-emerald-600 border border-emerald-500/10' : tx.type === 'SELL' ? 'bg-rose-500/15 text-rose-600 border border-rose-500/10' : 'bg-slate-500/15 text-slate-600 border border-slate-500/10'}`}>
+                      <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full uppercase ${
+                        tx.type === 'BUY' 
+                          ? 'bg-emerald-500/15 text-emerald-600 border border-emerald-500/10' 
+                          : tx.type === 'SELL' 
+                          ? 'bg-rose-500/15 text-rose-600 border border-rose-500/10' 
+                          : tx.type === 'INHERIT'
+                          ? 'bg-amber-500/15 text-amber-600 border border-amber-500/10'
+                          : 'bg-slate-500/15 text-slate-600 border border-slate-500/10'
+                      }`}>
                         {tx.type}
                       </span>
                       <span className="font-bold text-slate-800">{sec.ticker}</span>
+                      {tx.isUncertain && (
+                        <span className="flex items-center space-x-0.5 text-[9px] font-semibold text-amber-600 bg-amber-500/10 border border-amber-500/20 px-1.5 py-0.5 rounded-md" title="This transaction has uncertain purchase information (e.g. predates exchange)">
+                          <AlertTriangle className="w-2.5 h-2.5 mr-0.5" />
+                          Uncertain
+                        </span>
+                      )}
                     </div>
                     <div className="text-xs text-slate-500 mt-1">{format(new Date(tx.date), 'MMM d, yyyy')}</div>
                   </div>
                   <div className="text-right">
                     <div className="font-semibold text-slate-800">{tx.shares} shs</div>
-                    <div className="text-xs text-slate-500">@ {formatMoney(tx.pricePerShare, tx.currency)}</div>
+                    <div className="text-xs text-slate-500">
+                      {tx.type === 'INHERIT' ? 'Inherited / Unknown' : `@ ${formatMoney(tx.pricePerShare, tx.currency)}`}
+                    </div>
                   </div>
                 </div>
                 <div className="flex justify-end space-x-2 pt-2 border-t border-slate-100">
@@ -128,6 +144,7 @@ const TransactionForm = ({ onClose, initialTx, preSelectedSecurityId }: { onClos
   const [shares, setShares] = useState(initialTx?.shares || 100);
   const [price, setPrice] = useState(initialTx?.pricePerShare || 0);
   const [fees, setFees] = useState(initialTx?.fees || 0);
+  const [isUncertain, setIsUncertain] = useState(initialTx?.isUncertain || false);
 
   // Modals visibility
   const [showAddAcc, setShowAddAcc] = useState(false);
@@ -149,9 +166,10 @@ const TransactionForm = ({ onClose, initialTx, preSelectedSecurityId }: { onClos
       accountId: accId,
       date,
       shares: Number(shares),
-      pricePerShare: Number(price),
+      pricePerShare: type === 'INHERIT' ? 0 : Number(price),
       currency: selectedSec.currency,
-      fees: Number(fees),
+      fees: type === 'INHERIT' ? 0 : Number(fees),
+      isUncertain: type === 'INHERIT' ? true : isUncertain,
     };
 
     if (initialTx) {
@@ -191,10 +209,23 @@ const TransactionForm = ({ onClose, initialTx, preSelectedSecurityId }: { onClos
             <div className="grid grid-cols-2 gap-3">
               <div>
                 <label className="block text-xs text-slate-500 mb-1">Type</label>
-                <select value={type} onChange={e => setType(e.target.value as TransactionType)} className="w-full text-sm border-slate-300 rounded p-1.5 focus:ring-blue-500 bg-white">
+                <select 
+                  value={type} 
+                  onChange={e => {
+                    const newType = e.target.value as TransactionType;
+                    setType(newType);
+                    if (newType === 'INHERIT') {
+                      setIsUncertain(true);
+                      setPrice(0);
+                      setFees(0);
+                    }
+                  }} 
+                  className="w-full text-sm border-slate-300 rounded p-1.5 focus:ring-blue-500 bg-white"
+                >
                   <option value="BUY">BUY</option>
                   <option value="SELL">SELL</option>
                   <option value="DIVIDEND">DIVIDEND</option>
+                  <option value="INHERIT">INHERIT (No purchase info)</option>
                 </select>
               </div>
               <div>
@@ -233,12 +264,43 @@ const TransactionForm = ({ onClose, initialTx, preSelectedSecurityId }: { onClos
               </div>
               <div>
                 <label className="block text-xs text-slate-500 mb-1">Price per share ({selectedSec?.currency})</label>
-                <input type="number" required min="0" step="0.01" value={price} onChange={e => setPrice(Number(e.target.value))} className="w-full text-sm border border-slate-300 rounded p-1.5 focus:ring-blue-500 bg-white" />
+                <input 
+                  type="number" 
+                  required 
+                  min="0" 
+                  step="0.01" 
+                  disabled={type === 'INHERIT'}
+                  value={type === 'INHERIT' ? 0 : price} 
+                  onChange={e => setPrice(Number(e.target.value))} 
+                  className="w-full text-sm border border-slate-300 rounded p-1.5 focus:ring-blue-500 bg-white disabled:bg-slate-100 disabled:text-slate-400" 
+                />
               </div>
             </div>
             <div>
               <label className="block text-xs text-slate-500 mb-1">Fees ({selectedSec?.currency})</label>
-              <input type="number" min="0" step="0.01" value={fees} onChange={e => setFees(Number(e.target.value))} className="w-full text-sm border border-slate-300 rounded p-1.5 focus:ring-blue-500 bg-white" />
+              <input 
+                type="number" 
+                min="0" 
+                step="0.01" 
+                disabled={type === 'INHERIT'}
+                value={type === 'INHERIT' ? 0 : fees} 
+                onChange={e => setFees(Number(e.target.value))} 
+                className="w-full text-sm border border-slate-300 rounded p-1.5 focus:ring-blue-500 bg-white disabled:bg-slate-100 disabled:text-slate-400" 
+              />
+            </div>
+            
+            <div className="flex items-center space-x-2 py-1">
+              <input 
+                type="checkbox" 
+                id="isUncertain" 
+                checked={isUncertain || type === 'INHERIT'} 
+                disabled={type === 'INHERIT'}
+                onChange={e => setIsUncertain(e.target.checked)} 
+                className="rounded border-slate-300 text-blue-600 focus:ring-blue-500 h-4 w-4 bg-white" 
+              />
+              <label htmlFor="isUncertain" className="text-xs text-slate-600 select-none">
+                Flag transaction as uncertain (e.g. predates exchange, estimated cost basis)
+              </label>
             </div>
             <div className="flex justify-end space-x-2 pt-2">
               <button type="button" onClick={onClose} className="px-3 py-1.5 text-sm text-slate-600 hover:bg-slate-100 rounded">Cancel</button>

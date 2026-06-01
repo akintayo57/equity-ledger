@@ -106,7 +106,13 @@ export const Holdings = () => {
                         <div>
                           <div className="flex items-center space-x-2">
                             <span className="font-bold text-slate-900">{h.security.ticker}</span>
-                            {isStale && <AlertTriangle className="w-3.5 h-3.5 text-amber-500" />}
+                            {isStale && <AlertTriangle className="w-3.5 h-3.5 text-amber-500" title="Price is stale" />}
+                            {h.hasUncertainty && (
+                              <span className="flex items-center text-amber-600 text-[9px] bg-amber-500/10 border border-amber-500/20 px-1.5 py-0.5 rounded-md font-bold uppercase tracking-wider" title="This holding contains transactions with uncertain cost basis or inherited shares. Gains and average cost are estimated.">
+                                <AlertTriangle className="w-2.5 h-2.5 mr-0.5 text-amber-500" />
+                                Est.
+                              </span>
+                            )}
                           </div>
                           <div className="text-xs text-slate-500 truncate max-w-[180px]">
                             {h.security.companyName}

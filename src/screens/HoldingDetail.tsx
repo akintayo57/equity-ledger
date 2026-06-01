@@ -137,6 +137,18 @@ export const HoldingDetail = () => {
               </CardContent>
             </Card>
           </div>
+
+          {holding.hasUncertainty && (
+            <div className="bg-amber-50 border border-amber-200/60 rounded-2xl p-4 flex items-start space-x-3 text-amber-800">
+              <AlertTriangle className="w-5 h-5 text-amber-500 shrink-0 mt-0.5" />
+              <div className="text-xs space-y-1">
+                <div className="font-bold">Estimated Cost Basis & Returns</div>
+                <p className="text-slate-600 leading-normal">
+                  This holding contains inherited shares or transactions that predate the stock exchange with unknown purchase details. The cost basis and unrealized gain/loss calculations shown here are estimates based on a zero-cost assumption for these items.
+                </p>
+              </div>
+            </div>
+          )}
         </>
       )}
 
@@ -252,12 +264,31 @@ export const HoldingDetail = () => {
               {holdingTxs.map((tx) => (
                 <div key={tx.id} className="p-3 flex justify-between items-center text-sm">
                   <div>
-                    <div className={`font-medium ${tx.type === 'BUY' ? 'text-emerald-700' : tx.type === 'SELL' ? 'text-rose-700' : 'text-slate-900'}`}>{tx.type}</div>
+                    <div className="flex items-center space-x-1.5">
+                      <span className={`font-medium ${
+                        tx.type === 'BUY' 
+                          ? 'text-emerald-700' 
+                          : tx.type === 'SELL' 
+                          ? 'text-rose-700' 
+                          : tx.type === 'INHERIT'
+                          ? 'text-amber-700'
+                          : 'text-slate-900'
+                      }`}>
+                        {tx.type}
+                      </span>
+                      {tx.isUncertain && (
+                        <span className="flex items-center text-[9px] font-semibold text-amber-600 bg-amber-500/10 border border-amber-500/20 px-1 py-0.2 rounded" title="This transaction has uncertain purchase information (e.g. predates exchange)">
+                          Uncertain
+                        </span>
+                      )}
+                    </div>
                     <div className="text-xs text-slate-500">{format(new Date(tx.date), 'MMM d, yyyy')}</div>
                   </div>
                   <div className="text-right">
                     <div className="font-medium text-slate-900">{tx.shares} shs</div>
-                    <div className="text-xs text-slate-500">@ {formatMoney(tx.pricePerShare, tx.currency)}</div>
+                    <div className="text-xs text-slate-500">
+                      {tx.type === 'INHERIT' ? 'Inherited / Unknown' : `@ ${formatMoney(tx.pricePerShare, tx.currency)}`}
+                    </div>
                   </div>
                 </div>
               ))}

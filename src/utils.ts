@@ -40,7 +40,7 @@ export const calculateHoldings = (
   fxRates: FXRate[]
 ): HoldingCalculation[] => {
   // Group transactions by security and track cost basis in local and USD currencies
-  const holdingsMap = new Map<string, { shares: number; costBasis: number; costBasisUSD: number; totalSharesBought: number }>();
+  const holdingsMap = new Map<string, { shares: number; costBasis: number; costBasisUSD: number; totalSharesBought: number; hasUncertainty: boolean }>();
 
   // Sort transactions chronologically to calculate average cost step-by-step
   const sortedTxs = [...transactions].sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
@@ -48,7 +48,7 @@ export const calculateHoldings = (
   sortedTxs.forEach((tx) => {
     if (tx.type === 'DIVIDEND' || tx.type === 'FEE') return; // Fees handled inside BUY/SELL
 
-    const current = holdingsMap.get(tx.securityId) || { shares: 0, costBasis: 0, costBasisUSD: 0, totalSharesBought: 0 };
+    const current = holdingsMap.get(tx.securityId) || { shares: 0, costBasis: 0, costBasisUSD: 0, totalSharesBought: 0, hasUncertainty: false };
     
     // Find historically accurate FX rate on or before the transaction date
     let txFxRate = 1;
@@ -61,12 +61,19 @@ export const calculateHoldings = (
     }
     const txFxRateToUSD = 1 / txFxRate;
 
+    if (tx.isUncertain || tx.type === 'INHERIT') {
+      current.hasUncertainty = true;
+    }
+
     if (tx.type === 'BUY') {
       const txCost = (tx.shares * tx.pricePerShare) + (tx.fees || 0);
       const txCostUSD = txCost * txFxRateToUSD;
       current.shares += tx.shares;
       current.costBasis += txCost;
       current.costBasisUSD += txCostUSD;
+      current.totalSharesBought += tx.shares;
+    } else if (tx.type === 'INHERIT') {
+      current.shares += tx.shares;
       current.totalSharesBought += tx.shares;
     } else if (tx.type === 'SELL') {
       const avgCost = current.shares > 0 ? (current.costBasis / current.shares) : 0;
@@ -143,6 +150,7 @@ export const calculateHoldings = (
       portfolioWeight: 0, // Calculated in next step
       fxRateToUSD,
       fxStaleStatus,
+      hasUncertainty: data.hasUncertainty,
     });
   });
 

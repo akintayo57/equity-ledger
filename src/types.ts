@@ -29,7 +29,7 @@ export interface Account {
   notes?: string;
 }
 
-export type TransactionType = 'BUY' | 'SELL' | 'FEE' | 'DIVIDEND';
+export type TransactionType = 'BUY' | 'SELL' | 'FEE' | 'DIVIDEND' | 'INHERIT';
 
 export interface Transaction {
   id: string;
@@ -42,6 +42,7 @@ export interface Transaction {
   currency: Currency;
   fees: number;
   notes?: string;
+  isUncertain?: boolean;
 }
 
 export interface PriceUpdate {
@@ -82,6 +83,7 @@ export interface HoldingCalculation {
   portfolioWeight: number; // percentage 0-100
   fxRateToUSD: number;
   fxStaleStatus: 'FRESH' | 'STALE' | 'MISSING';
+  hasUncertainty?: boolean;
 }
 
 export interface PortfolioSummary {

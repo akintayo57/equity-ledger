@@ -11,6 +11,7 @@ export const Dashboard = () => {
 
   const stalePriceWarnings = holdings.filter(h => h.priceStaleStatus === 'STALE' || h.priceStaleStatus === 'VERY_STALE');
   const staleFXWarnings = holdings.filter(h => h.fxStaleStatus === 'STALE');
+  const hasUncertainty = holdings.some(h => h.hasUncertainty);
 
   const topGainers = useMemo(() => {
     return [...holdings].sort((a, b) => b.unrealizedGainLossPctUSD - a.unrealizedGainLossPctUSD).slice(0, 3);
@@ -61,17 +62,19 @@ export const Dashboard = () => {
           </div>
           <div className="mt-4 text-xs text-slate-500">
             Total Cost Basis: {formatMoney(portfolioSummary.totalCostBasisUSD, 'USD')}
+            {hasUncertainty && <span className="ml-1 text-amber-500 font-medium">* (Includes estimated cost basis)</span>}
           </div>
         </CardContent>
       </Card>
 
       {/* Warnings */}
-      {(stalePriceWarnings.length > 0 || staleFXWarnings.length > 0) && (
+      {(stalePriceWarnings.length > 0 || staleFXWarnings.length > 0 || hasUncertainty) && (
         <Card className="bg-amber-50 border-amber-200">
           <CardContent className="flex items-start space-x-3 p-3">
             <AlertCircle className="w-5 h-5 text-amber-600 shrink-0 mt-0.5" />
             <div className="text-sm text-amber-900">
-              <strong className="block mb-1">Data Quality Warnings</strong>
+              <strong className="block mb-1">Portfolio & Data Quality Warnings</strong>
+              {hasUncertainty && <div>• Some holdings contain transactions with estimated cost basis (e.g. inherited or predate exchange).</div>}
               {stalePriceWarnings.length > 0 && <div>• {stalePriceWarnings.length} holding(s) with stale prices.</div>}
               {staleFXWarnings.length > 0 && <div>• {staleFXWarnings.length} holding(s) with stale FX rates.</div>}
             </div>
