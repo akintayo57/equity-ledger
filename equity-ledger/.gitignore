@@ -1,0 +1,9 @@
+# Ignore Python caches
+__pycache__/
+*.pyc
+.pytest_cache/
+
+# Ignore local datasets and cache folders
+data/
+exports*/
+
