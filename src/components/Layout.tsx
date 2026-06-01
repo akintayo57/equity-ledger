@@ -38,13 +38,20 @@ export const Layout = ({ user }: { user: User }) => {
         </h1>
         
         <div className="flex items-center gap-3">
-          {user.photoURL && (
+          {user.photoURL ? (
             <img 
               src={user.photoURL} 
               alt={user.displayName || "User"} 
               className="w-7 h-7 rounded-full border border-slate-700 shadow-sm"
               referrerPolicy="no-referrer"
             />
+          ) : (
+            <div 
+              className="w-7 h-7 rounded-full bg-slate-800 border border-slate-700 flex items-center justify-center text-[10px] font-bold text-slate-300"
+              title={user.displayName || (user.isAnonymous ? "Local Workstation Session" : "Anonymous User")}
+            >
+              L
+            </div>
           )}
           <button 
             onClick={handleLogout}

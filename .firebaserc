@@ -1,5 +1,7 @@
 {
   "projects": {
-    "default": "harbour-finance-902b"
+    "default": "harbour-finance-902b",
+    "development": "harbour-finance-902b",
+    "production": "harbour-finance-prod"
   }
 }

@@ -4,6 +4,7 @@ import { Card, CardHeader, CardContent } from '../components/ui/Cards';
 import { PlusCircle, Upload, Trash2, Edit2, Info, User } from 'lucide-react';
 import { Currency, Security, Fundamentals } from '../types';
 import { ConfirmDialog, AlertDialog } from '../components/ui/Modal';
+import { auth } from '../firebase';
 
 export const DataSettings = () => {
   const { holdings } = useStore();
@@ -303,19 +304,38 @@ const EditFundamentalsForm = ({ security, onClose }: { security: Security, onClo
 };
 
 const ProfileSection = () => {
+  const user = auth.currentUser;
+  
   return (
     <Card>
       <CardHeader title="User Profile" />
       <CardContent className="p-6 text-center space-y-4">
-        <div className="mx-auto w-20 h-20 bg-slate-200 rounded-full flex items-center justify-center">
-          <User className="w-10 h-10 text-slate-400" />
-        </div>
+        {user?.photoURL ? (
+          <img 
+            src={user.photoURL} 
+            alt={user.displayName || "User"} 
+            className="mx-auto w-20 h-20 rounded-full border border-slate-200 shadow-sm"
+            referrerPolicy="no-referrer"
+          />
+        ) : (
+          <div className="mx-auto w-20 h-20 bg-slate-200 rounded-full flex items-center justify-center border border-slate-200">
+            <User className="w-10 h-10 text-slate-400" />
+          </div>
+        )}
         <div>
-          <h3 className="text-lg font-bold text-slate-900">Demo User</h3>
-          <p className="text-sm text-slate-500">investor@example.com</p>
+          <h3 className="text-lg font-bold text-slate-900">
+            {user?.displayName || (user?.isAnonymous ? "Local Workstation User" : "Anonymous User")}
+          </h3>
+          <p className="text-sm text-slate-500">
+            {user?.email || (user?.isAnonymous ? "Local Emulator Session" : "No email linked")}
+          </p>
         </div>
         <div className="pt-4 border-t border-slate-100">
-          <p className="text-xs text-slate-500 italic">This is a mock profile for the prototype. Authentication is disabled.</p>
+          <p className="text-xs text-slate-500 italic">
+            {user?.isAnonymous 
+              ? "Running in local mode. Authentication and Google Login are bypassed."
+              : "Authenticated securely via Google Login."}
+          </p>
         </div>
       </CardContent>
     </Card>

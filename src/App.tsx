@@ -22,6 +22,25 @@ export default function App() {
   const [initializing, setInitializing] = useState(true);
 
   useEffect(() => {
+    // In local mode, automatically sign in anonymously if there's no user session
+    if (import.meta.env.VITE_APP_ENV === 'local') {
+      const unsubscribe = onAuthStateChanged(auth, (usr) => {
+        if (!usr) {
+          import('firebase/auth').then(({ signInAnonymously }) => {
+            signInAnonymously(auth).catch((err) => {
+              console.error('Failed local auto-login:', err);
+              setInitializing(false);
+            });
+          });
+        } else {
+          setUser(usr);
+          setInitializing(false);
+        }
+      });
+      return unsubscribe;
+    }
+
+    // Cloud environments (Google Auth)
     const unsubscribe = onAuthStateChanged(auth, (usr) => {
       setUser(usr);
       setInitializing(false);
