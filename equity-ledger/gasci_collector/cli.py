@@ -22,7 +22,7 @@ from gasci_collector.db import (
     create_collection_run,
     update_collection_run
 )
-from gasci_collector.fetch import fetch_url
+from gasci_collector.fetch import fetch_url, get_cache_filename
 from gasci_collector.discover import (
     discover_all_sessions,
     discover_all_securities,
@@ -154,7 +154,15 @@ def handle_build(args):
             session_urls = session_urls[:args.limit]
             logger.info(f"Limit option set: restricting crawl to {args.limit} sessions.")
             
+        live_fetched_count = 0
         for i, url in enumerate(session_urls):
+            cache_file = raw_dir / get_cache_filename(url)
+            if not cache_file.is_file():
+                if getattr(args, "live_fetch_limit", None) is not None and live_fetched_count >= args.live_fetch_limit:
+                    logger.info(f"Reached live fetch limit ({args.live_fetch_limit}). Stopping session crawl.")
+                    break
+                live_fetched_count += 1
+
             logger.info(f"Processing session {i+1}/{len(session_urls)}: {url}")
             html, content_hash, local_path = fetch_url(url, raw_dir=raw_dir)
             if not html:
@@ -343,7 +351,15 @@ def handle_update(args):
         new_session_urls = [url for url in session_urls if url not in existing_urls]
         logger.info(f"Found {len(new_session_urls)} new sessions to process.")
         
+        live_fetched_count = 0
         for url in new_session_urls:
+            cache_file = raw_dir / get_cache_filename(url)
+            if not cache_file.is_file():
+                if getattr(args, "live_fetch_limit", None) is not None and live_fetched_count >= args.live_fetch_limit:
+                    logger.info(f"Reached live fetch limit ({args.live_fetch_limit}). Stopping update crawl.")
+                    break
+                live_fetched_count += 1
+
             html, content_hash, local_path = fetch_url(url, raw_dir=raw_dir)
             if not html:
                 errors_count += 1
@@ -592,6 +608,7 @@ def main():
     p_build.add_argument("--db", default=str(DEFAULT_DB_PATH), help="Path to SQLite database")
     p_build.add_argument("--output-dir", default=str(DEFAULT_RAW_DIR), help="Directory to save raw HTML files")
     p_build.add_argument("--limit", type=int, help="Limit number of sessions crawled (for debugging)")
+    p_build.add_argument("--live-fetch-limit", type=int, help="Limit number of live HTML fetches from the network")
     p_build.add_argument("--start-date", help="Start date filter for session crawling (YYYY-MM-DD)")
     p_build.add_argument("--end-date", help="End date filter for session crawling (YYYY-MM-DD)")
     p_build.set_defaults(func=handle_build)
@@ -600,6 +617,7 @@ def main():
     p_update = subparsers.add_parser("update", help="Update existing dataset with new sessions")
     p_update.add_argument("--db", default=str(DEFAULT_DB_PATH), help="Path to SQLite database")
     p_update.add_argument("--output-dir", default=str(DEFAULT_RAW_DIR), help="Directory to save raw HTML files")
+    p_update.add_argument("--live-fetch-limit", type=int, help="Limit number of live HTML fetches from the network")
     p_update.add_argument("--start-date", help="Start date filter for session crawling (YYYY-MM-DD)")
     p_update.add_argument("--end-date", help="End date filter for session crawling (YYYY-MM-DD)")
     p_update.set_defaults(func=handle_update)
