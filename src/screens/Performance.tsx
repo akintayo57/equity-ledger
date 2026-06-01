@@ -38,52 +38,108 @@ export const Performance = () => {
   }, [holdings, portfolioSummary.totalMarketValueUSD]);
 
   const [chartRange, setChartRange] = useState<'1M' | '3M' | '6M' | '1Y'>('6M');
+  const [metric, setMetric] = useState<'VALUE' | 'RETURN'>('VALUE');
 
-  // Calculates total portfolio value in USD on a specific date based on transactions ledger
-  const getPortfolioValueOnDate = (dateStr: string) => {
+  // Calculates total portfolio value and cost in USD on a specific date based on transactions ledger
+  const getPortfolioDataOnDate = (dateStr: string) => {
     const txsUpToDate = transactions.filter(t => t.date <= dateStr);
-    if (txsUpToDate.length === 0) return 0;
+    if (txsUpToDate.length === 0) return { value: 0, costBasis: 0, gain: 0, gainPct: 0 };
 
-    // Sum shares owned on that date
-    const holdingsMap = new Map<string, number>();
-    txsUpToDate.forEach(tx => {
+    // Sum shares and cost basis owned on that date
+    const holdingsMap = new Map<string, { shares: number; costBasisUSD: number }>();
+    
+    // Sort transactions chronologically to calculate cost basis correctly
+    const sortedTxs = [...txsUpToDate].sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+
+    sortedTxs.forEach(tx => {
       if (tx.type === 'DIVIDEND' || tx.type === 'FEE') return;
-      const currentShares = holdingsMap.get(tx.securityId) || 0;
-      if (tx.type === 'BUY') {
-        holdingsMap.set(tx.securityId, currentShares + tx.shares);
-      } else if (tx.type === 'SELL') {
-        holdingsMap.set(tx.securityId, Math.max(0, currentShares - tx.shares));
+      const current = holdingsMap.get(tx.securityId) || { shares: 0, costBasisUSD: 0 };
+      
+      // Find historically accurate FX rate on or before the transaction date
+      let txFxRate = 1;
+      if (tx.currency !== 'USD') {
+        const matchRates = fxRates
+          .filter((fx) => fx.fromCurrency === 'USD' && fx.toCurrency === tx.currency && fx.date <= tx.date)
+          .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+        
+        txFxRate = matchRates.length > 0 ? matchRates[0].rate : 1;
       }
+      const txFxRateToUSD = 1 / txFxRate;
+
+      if (tx.type === 'BUY') {
+        const txCost = (tx.shares * tx.pricePerShare) + (tx.fees || 0);
+        current.shares += tx.shares;
+        current.costBasisUSD += txCost * txFxRateToUSD;
+      } else if (tx.type === 'INHERIT') {
+        current.shares += tx.shares;
+      } else if (tx.type === 'SELL') {
+        const avgCostUSD = current.shares > 0 ? (current.costBasisUSD / current.shares) : 0;
+        current.shares = Math.max(0, current.shares - tx.shares);
+        current.costBasisUSD = Math.max(0, current.costBasisUSD - (tx.shares * avgCostUSD));
+      }
+
+      holdingsMap.set(tx.securityId, current);
     });
 
     let totalValueUSD = 0;
-    holdingsMap.forEach((shares, secId) => {
-      if (shares <= 0) return;
+    let totalCostUSD = 0;
+
+    holdingsMap.forEach((data, secId) => {
+      if (data.shares <= 0) return;
       const sec = securities.find(s => s.id === secId);
       if (!sec) return;
 
-      // Find price on or before dateStr
+      // Find price on or before dateStr, with fallback to earliest price if not yet traded
       const matchPrices = prices
         .filter(p => p.securityId === secId && p.date <= dateStr)
         .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
-      const price = matchPrices.length > 0 ? matchPrices[0].price : 0;
+      
+      let price = 0;
+      if (matchPrices.length > 0) {
+        price = matchPrices[0].price;
+      } else {
+        const allSecPrices = prices
+          .filter(p => p.securityId === secId)
+          .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+        if (allSecPrices.length > 0) {
+          price = allSecPrices[0].price;
+        }
+      }
 
-      // Find FX rate on or before dateStr
+      // Find FX rate on or before dateStr, with fallback to earliest rate
       let fxRate = 1;
       if (sec.currency !== 'USD') {
         const matchFX = fxRates
           .filter(fx => fx.fromCurrency === 'USD' && fx.toCurrency === sec.currency && fx.date <= dateStr)
           .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
-        fxRate = matchFX.length > 0 ? matchFX[0].rate : 1;
+        if (matchFX.length > 0) {
+          fxRate = matchFX[0].rate;
+        } else {
+          const allFX = fxRates
+            .filter(fx => fx.fromCurrency === 'USD' && fx.toCurrency === sec.currency)
+            .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+          if (allFX.length > 0) {
+            fxRate = allFX[0].rate;
+          }
+        }
       }
       const fxRateToUSD = 1 / fxRate;
 
-      const valLocal = shares * price;
+      const valLocal = data.shares * price;
       const valUSD = valLocal * fxRateToUSD;
       totalValueUSD += valUSD;
+      totalCostUSD += data.costBasisUSD;
     });
 
-    return Number(totalValueUSD.toFixed(2));
+    const gain = totalValueUSD - totalCostUSD;
+    const gainPct = totalCostUSD > 0 ? (gain / totalCostUSD) * 100 : 0;
+
+    return {
+      value: Number(totalValueUSD.toFixed(2)),
+      costBasis: Number(totalCostUSD.toFixed(2)),
+      gain: Number(gain.toFixed(2)),
+      gainPct: Number(gainPct.toFixed(2))
+    };
   };
 
   const portfolioTrend = useMemo(() => {
@@ -113,10 +169,13 @@ export const Performance = () => {
     for (let i = steps; i >= 0; i--) {
       const d = subFunc(new Date(), i);
       const dateStr = d.toISOString().split('T')[0];
-      const value = getPortfolioValueOnDate(dateStr);
+      const metrics = getPortfolioDataOnDate(dateStr);
       data.push({
         month: getLabel(d),
-        value: value,
+        value: metrics.value,
+        gainPct: metrics.gainPct,
+        gain: metrics.gain,
+        costBasis: metrics.costBasis
       });
     }
 
@@ -130,6 +189,11 @@ export const Performance = () => {
   }, [holdings]);
 
   const stalePct = portfolioSummary.totalMarketValueUSD > 0 ? (staleValue / portfolioSummary.totalMarketValueUSD) * 100 : 0;
+
+  // Chart styling parameters based on return or value
+  const latestTrendPoint = portfolioTrend[portfolioTrend.length - 1];
+  const isTrendPositive = metric === 'VALUE' ? true : (latestTrendPoint ? latestTrendPoint.gainPct >= 0 : true);
+  const strokeColor = metric === 'VALUE' ? '#2563eb' : (isTrendPositive ? '#10b981' : '#f43f5e');
 
   return (
     <div className="space-y-4">
@@ -145,9 +209,26 @@ export const Performance = () => {
             </div>
           </div>
           
-          <div className="flex justify-between items-center mb-4">
-            <h3 className="font-bold text-sm text-slate-800">Portfolio Trend</h3>
-            <div className="flex bg-slate-100 rounded-lg p-0.5 space-x-1">
+          <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3 mb-4">
+            <div>
+              <h3 className="font-bold text-sm text-slate-800">Portfolio Trend</h3>
+              <div className="flex bg-slate-100 rounded-lg p-0.5 mt-1 self-start">
+                <button
+                  onClick={() => setMetric('VALUE')}
+                  className={`px-3 py-1 text-xs font-semibold rounded-md transition-colors ${metric === 'VALUE' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
+                >
+                  Value
+                </button>
+                <button
+                  onClick={() => setMetric('RETURN')}
+                  className={`px-3 py-1 text-xs font-semibold rounded-md transition-colors ${metric === 'RETURN' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
+                >
+                  Return (%)
+                </button>
+              </div>
+            </div>
+            
+            <div className="flex bg-slate-100 rounded-lg p-0.5 space-x-1 self-start sm:self-center">
               {(['1M', '3M', '6M', '1Y'] as const).map(range => (
                 <button
                   key={range}
@@ -166,23 +247,41 @@ export const Performance = () => {
               <AreaChart data={portfolioTrend} margin={{ top: 5, right: 0, left: -20, bottom: 0 }}>
                 <defs>
                   <linearGradient id="colorValue" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="#2563eb" stopOpacity={0.3}/>
-                    <stop offset="95%" stopColor="#2563eb" stopOpacity={0}/>
+                    <stop offset="5%" stopColor={strokeColor} stopOpacity={0.3}/>
+                    <stop offset="95%" stopColor={strokeColor} stopOpacity={0}/>
                   </linearGradient>
                 </defs>
                 <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" />
                 <XAxis dataKey="month" axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: '#64748b' }} dy={10} />
-                <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: '#64748b' }} tickFormatter={(val) => `$${(val/1000).toFixed(0)}k`} />
+                <YAxis 
+                  axisLine={false} 
+                  tickLine={false} 
+                  tick={{ fontSize: 10, fill: '#64748b' }} 
+                  tickFormatter={(val) => metric === 'VALUE' ? `$${(val/1000).toFixed(0)}k` : `${val >= 0 ? '+' : ''}${val.toFixed(0)}%`} 
+                />
                 <Tooltip 
                   contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }}
-                  formatter={(value: number) => [formatMoney(value, 'USD'), 'Portfolio Value']}
+                  formatter={(value: number) => {
+                    if (metric === 'VALUE') {
+                      return [formatMoney(value, 'USD'), 'Portfolio Value'];
+                    } else {
+                      return [`${value >= 0 ? '+' : ''}${value.toFixed(2)}%`, 'Performance Return'];
+                    }
+                  }}
                   labelStyle={{ display: 'none' }}
                 />
-                <Area type="monotone" dataKey="value" stroke="#2563eb" strokeWidth={2} fillOpacity={1} fill="url(#colorValue)" />
+                <Area 
+                  type="monotone" 
+                  dataKey={metric === 'VALUE' ? 'value' : 'gainPct'} 
+                  stroke={strokeColor} 
+                  strokeWidth={2} 
+                  fillOpacity={1} 
+                  fill="url(#colorValue)" 
+                />
               </AreaChart>
             </ResponsiveContainer>
             <div className="text-center mt-2">
-               <span className="text-[10px] text-slate-400 border border-slate-200 px-2 py-0.5 rounded">Trend (Simulated)</span>
+               <span className="text-[10px] text-slate-400 border border-slate-200 px-2 py-0.5 rounded">Historical Portfolio Performance</span>
             </div>
           </div>
 
@@ -190,7 +289,7 @@ export const Performance = () => {
              {/* Visualizing Basis vs Gain */}
              <div className="bg-slate-800 h-full" style={{ width: `${Math.min(100, (portfolioSummary.totalCostBasisUSD / portfolioSummary.totalMarketValueUSD) * 100)}%` }} title="Cost Basis" />
              {portfolioSummary.unrealizedGainUSD > 0 && (
-               <div className="bg-emerald-500 h-full flex-1" title="Unrealized Gain" />
+                <div className="bg-emerald-500 h-full flex-1" title="Unrealized Gain" />
              )}
           </div>
           <div className="flex justify-between mt-2 text-xs text-slate-500">
