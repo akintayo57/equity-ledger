@@ -1,0 +1,38 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Global reads allowed for authenticated users.
+    // Users can create a missing security but cannot modify/delete existing ones.
+    match /securities/{securityId} {
+      allow read: if request.auth != null;
+      allow create: if request.auth != null;
+      allow update, delete: if false;
+    }
+    
+    // Pricing and FX rates are read-only for clients to prevent market manipulation.
+    // Writes will only be performed by admin service scripts (bypassing rules).
+    match /prices/{priceId} {
+      allow read: if request.auth != null;
+      allow write: if false;
+    }
+    match /fxRates/{rateId} {
+      allow read: if request.auth != null;
+      allow write: if false;
+    }
+    
+    // User-specific collections are strictly locked to their owner.
+    match /users/{userId} {
+      allow read, write: if request.auth != null && request.auth.uid == userId;
+      
+      match /transactions/{transactionId} {
+        allow read, write: if request.auth != null && request.auth.uid == userId;
+      }
+      match /accounts/{accountId} {
+        allow read, write: if request.auth != null && request.auth.uid == userId;
+      }
+      match /watchlist/{documentId} {
+        allow read, write: if request.auth != null && request.auth.uid == userId;
+      }
+    }
+  }
+}

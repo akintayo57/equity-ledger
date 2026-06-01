@@ -1,4 +1,4 @@
-import { Security, Account, Transaction, PriceUpdate, FXRate } from './types';
+import { Security, Account, Transaction, PriceUpdate, FXRate, Currency } from './types';
 
 export const initialSecurities: Security[] = [
   { id: 'sec-1', companyName: 'Guyana Bank for Trade and Industry', ticker: 'GBTI', exchange: 'GASCI', country: 'Guyana', currency: 'GYD', sector: 'Financials', status: 'ACTIVE', fundamentals: { peRatio: 12.5, eps: 45.2, dividendYield: 2.1, pbRatio: 1.4, roe: 15.2, lastUpdated: '2023-12-31' } },

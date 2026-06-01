@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import React, { useState } from 'react';
 import { useStore } from '../store';
 import { Card, CardHeader, CardContent } from '../components/ui/Cards';
 import { PlusCircle, Upload, Trash2, Edit2, Info, User } from 'lucide-react';
@@ -87,35 +87,40 @@ const FundamentalsSection = () => {
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [secToDelete, setSecToDelete] = useState<string | null>(null);
 
-  const handleImport = () => {
+  const handleImport = async () => {
     const lines = csvText.trim().split('\n');
     let imported = 0;
     
-    lines.forEach(line => {
-      const parts = line.split(',');
-      if (parts.length < 2) return;
-      const [ticker, peRatio, eps, dividendYield, pbRatio, roe, lastUpdated] = parts.map(p => p.trim());
-      
-      if (ticker.toLowerCase() === 'ticker') return;
-      
-      const sec = securities.find(s => s.ticker.toLowerCase() === ticker.toLowerCase());
-      if (sec) {
-        const fundamentals: any = { ...sec.fundamentals };
-        if (peRatio) fundamentals.peRatio = Number(peRatio);
-        if (eps) fundamentals.eps = Number(eps);
-        if (dividendYield) fundamentals.dividendYield = Number(dividendYield);
-        if (pbRatio) fundamentals.pbRatio = Number(pbRatio);
-        if (roe) fundamentals.roe = Number(roe);
-        if (lastUpdated) fundamentals.lastUpdated = lastUpdated;
+    try {
+      for (const line of lines) {
+        const parts = line.split(',');
+        if (parts.length < 2) continue;
+        const [ticker, peRatio, eps, dividendYield, pbRatio, roe, lastUpdated] = parts.map(p => p.trim());
         
-        updateSecurity(sec.id, { fundamentals });
-        imported++;
+        if (ticker.toLowerCase() === 'ticker') continue;
+        
+        const sec = securities.find(s => s.ticker.toLowerCase() === ticker.toLowerCase());
+        if (sec) {
+          const fundamentals: any = { ...sec.fundamentals };
+          if (peRatio) fundamentals.peRatio = Number(peRatio);
+          if (eps) fundamentals.eps = Number(eps);
+          if (dividendYield) fundamentals.dividendYield = Number(dividendYield);
+          if (pbRatio) fundamentals.pbRatio = Number(pbRatio);
+          if (roe) fundamentals.roe = Number(roe);
+          if (lastUpdated) fundamentals.lastUpdated = lastUpdated;
+          
+          await updateSecurity(sec.id, { fundamentals });
+          imported++;
+        }
       }
-    });
-    
-    setAlertMsg(`Imported fundamentals for ${imported} securities successfully.`);
-    setAlertOpen(true);
-    setCsvText('');
+      
+      setAlertMsg(`Imported fundamentals for ${imported} securities successfully.`);
+      setAlertOpen(true);
+      setCsvText('');
+    } catch (err) {
+      setAlertMsg(`Import failed: ${(err as Error).message}`);
+      setAlertOpen(true);
+    }
   };
 
   const handleDeletePrompt = (secId: string) => {
@@ -123,10 +128,15 @@ const FundamentalsSection = () => {
     setConfirmOpen(true);
   };
 
-  const confirmDelete = () => {
+  const confirmDelete = async () => {
     if (secToDelete) {
-      updateSecurity(secToDelete, { fundamentals: undefined });
-      setSecToDelete(null);
+      try {
+        await updateSecurity(secToDelete, { fundamentals: undefined });
+        setSecToDelete(null);
+      } catch (err) {
+        setAlertMsg(`Delete failed: ${(err as Error).message}`);
+        setAlertOpen(true);
+      }
     }
   };
 
@@ -233,7 +243,7 @@ const EditFundamentalsForm = ({ security, onClose }: { security: Security, onClo
   const [roe, setRoe] = useState(security.fundamentals?.roe?.toString() || '');
   const [lastUpdated, setLastUpdated] = useState(security.fundamentals?.lastUpdated || new Date().toISOString().split('T')[0]);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     const fundamentals: Fundamentals = {
       peRatio: peRatio ? Number(peRatio) : undefined,
@@ -243,8 +253,12 @@ const EditFundamentalsForm = ({ security, onClose }: { security: Security, onClo
       roe: roe ? Number(roe) : undefined,
       lastUpdated: lastUpdated || undefined,
     };
-    updateSecurity(security.id, { fundamentals });
-    onClose();
+    try {
+      await updateSecurity(security.id, { fundamentals });
+      onClose();
+    } catch (err) {
+      alert(`Failed to update fundamentals: ${(err as Error).message}`);
+    }
   };
 
   return (
@@ -343,19 +357,24 @@ const PriceUpdatesTab = () => {
   const [alertOpen, setAlertOpen] = useState(false);
   const [alertMsg, setAlertMsg] = useState('');
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     const sec = securities.find(s => s.id === secId);
     if (!sec) return;
-    addPriceUpdate({
-      securityId: secId,
-      date,
-      price: Number(price),
-      currency: sec.currency,
-      source: 'Manual'
-    });
-    setAlertMsg(`Price record for ${sec.ticker} has been updated to ${sec.currency} ${Number(price).toFixed(2)}.`);
-    setAlertOpen(true);
+    try {
+      await addPriceUpdate({
+        securityId: secId,
+        date,
+        price: Number(price),
+        currency: sec.currency,
+        source: 'Manual'
+      });
+      setAlertMsg(`Price record for ${sec.ticker} has been updated to ${sec.currency} ${Number(price).toFixed(2)}.`);
+      setAlertOpen(true);
+    } catch (err) {
+      setAlertMsg(`Failed to update price: ${(err as Error).message}`);
+      setAlertOpen(true);
+    }
   };
 
   return (
@@ -408,17 +427,22 @@ const FXUpdatesTab = () => {
   const [alertOpen, setAlertOpen] = useState(false);
   const [alertMsg, setAlertMsg] = useState('');
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    addFXRate({
-      fromCurrency: 'USD',
-      toCurrency,
-      date,
-      rate: Number(rate),
-      source: 'Manual'
-    });
-    setAlertMsg(`FX Conversion rate for ${toCurrency} has been updated to ${Number(rate).toFixed(4)}.`);
-    setAlertOpen(true);
+    try {
+      await addFXRate({
+        fromCurrency: 'USD',
+        toCurrency,
+        date,
+        rate: Number(rate),
+        source: 'Manual'
+      });
+      setAlertMsg(`FX Conversion rate for ${toCurrency} has been updated to ${Number(rate).toFixed(4)}.`);
+      setAlertOpen(true);
+    } catch (err) {
+      setAlertMsg(`Failed to update FX rate: ${(err as Error).message}`);
+      setAlertOpen(true);
+    }
   };
 
   return (

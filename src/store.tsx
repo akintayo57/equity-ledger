@@ -1,10 +1,18 @@
 import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { Security, Account, Transaction, PriceUpdate, FXRate, HoldingCalculation, PortfolioSummary } from './types';
-import { initialSecurities, initialAccounts, initialTransactions, initialPrices, initialFXRates, initialWatchlist } from './mockData';
+import { initialSecurities, initialPrices, initialFXRates } from './mockData';
 import { calculateHoldings } from './utils';
-
-// Generate UUIDs simply
-const generateId = () => Math.random().toString(36).substring(2, 9);
+import { User } from 'firebase/auth';
+import { db } from './firebase';
+import { 
+  collection, 
+  doc, 
+  onSnapshot, 
+  setDoc, 
+  addDoc, 
+  deleteDoc, 
+  updateDoc 
+} from 'firebase/firestore';
 
 interface AppState {
   securities: Security[];
@@ -13,61 +21,119 @@ interface AppState {
   prices: PriceUpdate[];
   fxRates: FXRate[];
   watchlist: string[];
+  loading: boolean;
 }
 
 interface StoreContextType extends AppState {
   holdings: HoldingCalculation[];
   portfolioSummary: PortfolioSummary;
-  addTransaction: (tx: Omit<Transaction, 'id'>) => void;
-  updateTransaction: (id: string, tx: Omit<Transaction, 'id'>) => void;
-  deleteTransaction: (id: string) => void;
-  addPriceUpdate: (px: Omit<PriceUpdate, 'id'>) => void;
-  addFXRate: (fx: Omit<FXRate, 'id'>) => void;
-  addSecurity: (sec: Omit<Security, 'id'>) => string;
-  updateSecurity: (id: string, sec: Partial<Security>) => void;
-  toggleWatchlist: (id: string) => void;
-  addAccount: (acc: Omit<Account, 'id'>) => string;
+  addTransaction: (tx: Omit<Transaction, 'id'>) => Promise<void>;
+  updateTransaction: (id: string, tx: Omit<Transaction, 'id'>) => Promise<void>;
+  deleteTransaction: (id: string) => Promise<void>;
+  addPriceUpdate: (px: Omit<PriceUpdate, 'id'>) => Promise<void>;
+  addFXRate: (fx: Omit<FXRate, 'id'>) => Promise<void>;
+  addSecurity: (sec: Omit<Security, 'id'>) => Promise<string>;
+  updateSecurity: (id: string, sec: Partial<Security>) => Promise<void>;
+  toggleWatchlist: (id: string) => Promise<void>;
+  addAccount: (acc: Omit<Account, 'id'>) => Promise<string>;
 }
 
 const StoreContext = createContext<StoreContextType | undefined>(undefined);
 
-const STORAGE_KEY = 'harbour_finance_state_v1';
+export const StoreProvider = ({ children, user }: { children: ReactNode; user: User }) => {
+  const [securities, setSecurities] = useState<Security[]>(initialSecurities);
+  const [prices, setPrices] = useState<PriceUpdate[]>(initialPrices);
+  const [fxRates, setFXRates] = useState<FXRate[]>(initialFXRates);
+  
+  const [accounts, setAccounts] = useState<Account[]>([]);
+  const [transactions, setTransactions] = useState<Transaction[]>([]);
+  const [watchlist, setWatchlist] = useState<string[]>([]);
+  const [loading, setLoading] = useState(true);
 
-const loadState = (): AppState => {
-  const saved = localStorage.getItem(STORAGE_KEY);
-  if (saved) {
-    try {
-      const parsed = JSON.parse(saved);
-      return {
-        securities: parsed.securities || initialSecurities,
-        accounts: parsed.accounts || initialAccounts,
-        transactions: parsed.transactions || [],
-        prices: parsed.prices || initialPrices,
-        fxRates: parsed.fxRates || initialFXRates,
-        watchlist: parsed.watchlist || [],
-      };
-    } catch {
-      // Return defaults on error
-    }
-  }
-  return {
-    securities: initialSecurities,
-    accounts: initialAccounts,
-    transactions: [],
-    prices: initialPrices,
-    fxRates: initialFXRates,
-    watchlist: [],
-  };
-};
-
-export const StoreProvider = ({ children }: { children: ReactNode }) => {
-  const [state, setState] = useState<AppState>(loadState());
-
+  // Sync Global Collections (Securities, Prices, FX Rates)
   useEffect(() => {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
-  }, [state]);
+    // 1. Sync Securities
+    const unsubSecurities = onSnapshot(collection(db, 'securities'), (snap) => {
+      if (snap.empty) {
+        // If Firestore securities is empty, seed it with defaults
+        initialSecurities.forEach(async (sec) => {
+          await setDoc(doc(db, 'securities', sec.id), sec);
+        });
+      } else {
+        const secs = snap.docs.map(d => ({ ...d.data(), id: d.id } as Security));
+        setSecurities(secs);
+      }
+    });
 
-  const holdings = calculateHoldings(state.securities, state.transactions, state.prices, state.fxRates);
+    // 2. Sync Prices
+    const unsubPrices = onSnapshot(collection(db, 'prices'), (snap) => {
+      if (snap.empty) {
+        // Seed if empty
+        initialPrices.forEach(async (px) => {
+          await setDoc(doc(db, 'prices', px.id), px);
+        });
+      } else {
+        const pxs = snap.docs.map(d => ({ ...d.data(), id: d.id } as PriceUpdate));
+        setPrices(pxs);
+      }
+    });
+
+    // 3. Sync FX Rates
+    const unsubFX = onSnapshot(collection(db, 'fxRates'), (snap) => {
+      if (snap.empty) {
+        // Seed if empty
+        initialFXRates.forEach(async (fx) => {
+          await setDoc(doc(db, 'fxRates', fx.id), fx);
+        });
+      } else {
+        const fxs = snap.docs.map(d => ({ ...d.data(), id: d.id } as FXRate));
+        setFXRates(fxs);
+      }
+    });
+
+    return () => {
+      unsubSecurities();
+      unsubPrices();
+      unsubFX();
+    };
+  }, []);
+
+  // Sync User Specific Subcollections
+  useEffect(() => {
+    setLoading(true);
+    
+    // Sync User Accounts
+    const unsubAccounts = onSnapshot(collection(db, 'users', user.uid, 'accounts'), (snap) => {
+      const accs = snap.docs.map(d => ({ ...d.data(), id: d.id } as Account));
+      setAccounts(accs);
+    });
+
+    // Sync User Transactions
+    const unsubTransactions = onSnapshot(collection(db, 'users', user.uid, 'transactions'), (snap) => {
+      const txs = snap.docs.map(d => ({ ...d.data(), id: d.id } as Transaction));
+      setTransactions(txs);
+    });
+
+    // Sync User Watchlist
+    const unsubWatchlist = onSnapshot(doc(db, 'users', user.uid, 'watchlist', 'default'), (docSnap) => {
+      if (docSnap.exists()) {
+        setWatchlist(docSnap.data().securityIds || []);
+      } else {
+        setWatchlist([]);
+      }
+      setLoading(false);
+    }, () => {
+      setLoading(false);
+    });
+
+    return () => {
+      unsubAccounts();
+      unsubTransactions();
+      unsubWatchlist();
+    };
+  }, [user.uid]);
+
+  const holdings = calculateHoldings(securities, transactions, prices, fxRates);
 
   const portfolioSummary: PortfolioSummary = holdings.reduce(
     (acc, curr) => {
@@ -83,80 +149,59 @@ export const StoreProvider = ({ children }: { children: ReactNode }) => {
     portfolioSummary.capitalGrowthPct = (portfolioSummary.unrealizedGainUSD / portfolioSummary.totalCostBasisUSD) * 100;
   }
 
-  const addTransaction = (tx: Omit<Transaction, 'id'>) => {
-    setState((prev) => ({
-      ...prev,
-      transactions: [...prev.transactions, { ...tx, id: `tx-${generateId()}` }],
-    }));
+  // Database mutations
+  const addTransaction = async (tx: Omit<Transaction, 'id'>) => {
+    await addDoc(collection(db, 'users', user.uid, 'transactions'), tx);
   };
 
-  const updateTransaction = (id: string, updatedTx: Omit<Transaction, 'id'>) => {
-    setState((prev) => ({
-      ...prev,
-      transactions: prev.transactions.map((tx) => (tx.id === id ? { ...updatedTx, id } : tx)),
-    }));
+  const updateTransaction = async (id: string, updatedTx: Omit<Transaction, 'id'>) => {
+    await setDoc(doc(db, 'users', user.uid, 'transactions', id), updatedTx);
   };
 
-  const deleteTransaction = (id: string) => {
-    setState((prev) => ({
-      ...prev,
-      transactions: prev.transactions.filter((tx) => tx.id !== id),
-    }));
+  const deleteTransaction = async (id: string) => {
+    await deleteDoc(doc(db, 'users', user.uid, 'transactions', id));
   };
 
-  const addPriceUpdate = (px: Omit<PriceUpdate, 'id'>) => {
-    setState((prev) => ({
-      ...prev,
-      prices: [...prev.prices, { ...px, id: `px-${generateId()}` }],
-    }));
+  const addPriceUpdate = async (px: Omit<PriceUpdate, 'id'>) => {
+    await addDoc(collection(db, 'prices'), px);
   };
 
-  const addFXRate = (fx: Omit<FXRate, 'id'>) => {
-    setState((prev) => ({
-      ...prev,
-      fxRates: [...prev.fxRates, { ...fx, id: `fx-${generateId()}` }],
-    }));
+  const addFXRate = async (fx: Omit<FXRate, 'id'>) => {
+    await addDoc(collection(db, 'fxRates'), fx);
   };
 
-  const addSecurity = (sec: Omit<Security, 'id'>) => {
-    const id = `sec-${generateId()}`;
-    setState((prev) => ({
-      ...prev,
-      securities: [...prev.securities, { ...sec, id }],
-    }));
-    return id;
+  const addSecurity = async (sec: Omit<Security, 'id'>) => {
+    const docRef = await addDoc(collection(db, 'securities'), sec);
+    return docRef.id;
   };
 
-  const addAccount = (acc: Omit<Account, 'id'>) => {
-    const id = `acc-${generateId()}`;
-    setState((prev) => ({
-      ...prev,
-      accounts: [...prev.accounts, { ...acc, id }],
-    }));
-    return id;
+  const addAccount = async (acc: Omit<Account, 'id'>) => {
+    const docRef = await addDoc(collection(db, 'users', user.uid, 'accounts'), acc);
+    return docRef.id;
   };
 
-  const updateSecurity = (id: string, sec: Partial<Security>) => {
-    setState((prev) => ({
-      ...prev,
-      securities: prev.securities.map((s) => (s.id === id ? { ...s, ...sec } : s)),
-    }));
+  const updateSecurity = async (id: string, sec: Partial<Security>) => {
+    await updateDoc(doc(db, 'securities', id), sec);
   };
 
-  const toggleWatchlist = (id: string) => {
-    setState((prev) => {
-      const isWatched = prev.watchlist.includes(id);
-      return {
-        ...prev,
-        watchlist: isWatched ? prev.watchlist.filter(w => w !== id) : [...prev.watchlist, id]
-      };
+  const toggleWatchlist = async (id: string) => {
+    const isWatched = watchlist.includes(id);
+    const updatedWatchlist = isWatched ? watchlist.filter(w => w !== id) : [...watchlist, id];
+    await setDoc(doc(db, 'users', user.uid, 'watchlist', 'default'), {
+      securityIds: updatedWatchlist
     });
   };
 
   return (
     <StoreContext.Provider
       value={{
-        ...state,
+        securities,
+        accounts,
+        transactions,
+        prices,
+        fxRates,
+        watchlist,
+        loading,
         holdings,
         portfolioSummary,
         addTransaction,
@@ -170,7 +215,14 @@ export const StoreProvider = ({ children }: { children: ReactNode }) => {
         addAccount,
       }}
     >
-      {children}
+      {loading ? (
+        <div className="min-h-screen flex items-center justify-center bg-slate-950 text-white">
+          <div className="flex flex-col items-center gap-4">
+            <div className="w-8 h-8 border-3 border-blue-500 border-t-transparent rounded-full animate-spin" />
+            <p className="text-slate-400 text-xs font-semibold animate-pulse">Syncing database...</p>
+          </div>
+        </div>
+      ) : children}
     </StoreContext.Provider>
   );
 };
@@ -180,3 +232,4 @@ export const useStore = () => {
   if (!context) throw new Error('useStore must be used within a StoreProvider');
   return context;
 };
+

@@ -90,7 +90,7 @@ export const Performance = () => {
     const data = [];
     let steps = 6;
     let getLabel = (d: Date) => format(d, 'MMM');
-    let subFunc = subMonths;
+    let subFunc = (d: Date, amount: number) => subMonths(d, amount);
 
     if (chartRange === '1M') {
       steps = 15; // 15 data points

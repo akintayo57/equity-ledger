@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import React, { useState } from 'react';
 import { useStore } from '../store';
 import { Card, CardContent } from '../components/ui/Cards';
 import { formatMoney } from '../utils';
@@ -168,11 +168,11 @@ const TransactionForm = ({ onClose, initialTx }: { onClose: () => void, initialT
     onClose();
   };
 
-  const handleAddSecurity = (e: React.FormEvent) => {
+  const handleAddSecurity = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newSecTicker || !newSecName) return;
 
-    const newId = addSecurity({
+    const newId = await addSecurity({
       companyName: newSecName,
       ticker: newSecTicker.trim().toUpperCase(),
       exchange: newSecExchange,
@@ -183,7 +183,7 @@ const TransactionForm = ({ onClose, initialTx }: { onClose: () => void, initialT
     });
 
     if (newSecPrice > 0) {
-      addPriceUpdate({
+      await addPriceUpdate({
         securityId: newId,
         date: new Date().toISOString().split('T')[0],
         price: Number(newSecPrice),
@@ -201,11 +201,11 @@ const TransactionForm = ({ onClose, initialTx }: { onClose: () => void, initialT
     setNewSecPrice(1);
   };
 
-  const handleAddAccount = (e: React.FormEvent) => {
+  const handleAddAccount = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newAccName) return;
 
-    const newId = addAccount({
+    const newId = await addAccount({
       brokerName: newAccName,
       country: newAccCountry,
       baseCurrency: newAccCurrency

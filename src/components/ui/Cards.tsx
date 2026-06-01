@@ -1,7 +1,7 @@
 import { ReactNode } from 'react';
 import { cn } from '../Layout';
 
-export const Card = ({ children, className }: { children: ReactNode; className?: string }) => (
+export const Card = ({ children, className }: { children: ReactNode; className?: string; key?: any }) => (
   <div className={cn('bg-white rounded-2xl shadow-sm border border-slate-100/90 overflow-hidden hover:shadow-md hover:border-slate-200/50 transition-all duration-300', className)}>
     {children}
   </div>
