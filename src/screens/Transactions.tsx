@@ -6,10 +6,13 @@ import { format } from 'date-fns';
 import { PlusCircle, Edit2, Trash2 } from 'lucide-react';
 import { Transaction, TransactionType, Currency } from '../types';
 import { ConfirmDialog, Modal } from '../components/ui/Modal';
+import { useLocation } from 'react-router-dom';
 
 export const Transactions = () => {
   const { transactions, securities, deleteTransaction } = useStore();
-  const [showAdd, setShowAdd] = useState(false);
+  const location = useLocation();
+  const locationState = location.state as { showAdd?: boolean; securityId?: string } | null;
+  const [showAdd, setShowAdd] = useState(locationState?.showAdd || false);
   const [editingTxId, setEditingTxId] = useState<string | null>(null);
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
   const [txToDelete, setTxToDelete] = useState<string | null>(null);
@@ -52,9 +55,11 @@ export const Transactions = () => {
       {(showAdd || editingTxId) && (
         <TransactionForm 
           initialTx={transactions.find(tx => tx.id === editingTxId)}
+          preSelectedSecurityId={locationState?.securityId}
           onClose={() => {
             setShowAdd(false);
             setEditingTxId(null);
+            window.history.replaceState({}, document.title);
           }} 
         />
       )}
@@ -113,11 +118,11 @@ export const Transactions = () => {
   );
 };
 
-const TransactionForm = ({ onClose, initialTx }: { onClose: () => void, initialTx?: Transaction }) => {
+const TransactionForm = ({ onClose, initialTx, preSelectedSecurityId }: { onClose: () => void, initialTx?: Transaction, preSelectedSecurityId?: string }) => {
   const { securities, accounts, addTransaction, updateTransaction, addSecurity, addPriceUpdate, addAccount } = useStore();
   
   const [type, setType] = useState<TransactionType>(initialTx?.type || 'BUY');
-  const [secId, setSecId] = useState(initialTx?.securityId || securities[0]?.id || '');
+  const [secId, setSecId] = useState(initialTx?.securityId || preSelectedSecurityId || securities[0]?.id || '');
   const [accId, setAccId] = useState(initialTx?.accountId || accounts[0]?.id || '');
   const [date, setDate] = useState(initialTx?.date || new Date().toISOString().split('T')[0]);
   const [shares, setShares] = useState(initialTx?.shares || 100);
