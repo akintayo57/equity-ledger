@@ -1,0 +1,75 @@
+import { Link, Outlet, useLocation } from 'react-router-dom';
+import { LayoutDashboard, Wallet, Briefcase, ArrowLeftRight, Settings } from 'lucide-react';
+import { clsx, type ClassValue } from 'clsx';
+import { twMerge } from 'tailwind-merge';
+import { ReloadPrompt } from './ReloadPrompt';
+import { motion } from 'motion/react';
+
+export function cn(...inputs: ClassValue[]) {
+  return twMerge(clsx(inputs));
+}
+
+const navItems = [
+  { name: 'Dashboard', path: '/', icon: LayoutDashboard },
+  { name: 'Holdings', path: '/holdings', icon: Wallet },
+  { name: 'Performance', path: '/performance', icon: Briefcase },
+  { name: 'Transactions', path: '/transactions', icon: ArrowLeftRight },
+  { name: 'Settings', path: '/settings', icon: Settings },
+];
+
+export const Layout = () => {
+  const location = useLocation();
+
+  return (
+    <div className="flex flex-col min-h-screen bg-slate-50 text-slate-900 pb-24">
+      <header className="bg-slate-900/90 backdrop-blur-md text-white px-5 py-4.5 shadow-sm sticky top-0 z-20 border-b border-slate-800/20">
+        <h1 className="text-lg font-bold tracking-tight bg-gradient-to-r from-blue-400 via-cyan-400 to-emerald-400 bg-clip-text text-transparent">
+          Harbour Finance
+        </h1>
+      </header>
+
+      <main className="flex-1 w-full max-w-lg mx-auto p-4 overflow-x-hidden">
+        <Outlet />
+      </main>
+
+      <nav className="fixed bottom-0 left-0 right-0 bg-white/95 backdrop-blur-md border-t border-slate-100 safe-area-pb z-30 shadow-lg">
+        <div className="flex justify-between items-center max-w-lg mx-auto px-3 relative">
+          {navItems.map((item) => {
+            const isActive = location.pathname === item.path || (item.path !== '/' && location.pathname.startsWith(item.path));
+            const Icon = item.icon;
+            return (
+              <Link
+                key={item.name}
+                to={item.path}
+                className={cn(
+                  'relative flex flex-col items-center py-3.5 px-1.5 flex-1 text-[10px] font-semibold transition-colors z-10',
+                  isActive ? 'text-blue-600' : 'text-slate-400 hover:text-slate-700'
+                )}
+              >
+                {isActive && (
+                  <motion.div
+                    layoutId="navTabBackground"
+                    className="absolute inset-x-1.5 inset-y-1.5 bg-blue-50/60 rounded-xl -z-10"
+                    transition={{ type: 'spring', stiffness: 350, damping: 28 }}
+                  />
+                )}
+                {isActive && (
+                  <motion.div
+                    layoutId="navTabActiveBar"
+                    className="absolute top-0 left-1/2 -translate-x-1/2 w-8 h-0.75 bg-blue-600 rounded-b-md"
+                    transition={{ type: 'spring', stiffness: 350, damping: 28 }}
+                  />
+                )}
+                <Icon className={cn('w-5 h-5 mb-1.5', isActive ? 'stroke-[2.25]' : 'stroke-[1.75]')} />
+                <span className="truncate">{item.name}</span>
+              </Link>
+            );
+          })}
+        </div>
+      </nav>
+
+      {/* PWA Caching & Update Prompter */}
+      <ReloadPrompt />
+    </div>
+  );
+};

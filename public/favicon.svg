@@ -1,0 +1,39 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="100%" height="100%">
+  <defs>
+    <linearGradient id="bgGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#0f172a" />
+      <stop offset="100%" stop-color="#1e293b" />
+    </linearGradient>
+    <linearGradient id="lineGrad" x1="0%" y1="100%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#3b82f6" />
+      <stop offset="50%" stop-color="#06b6d4" />
+      <stop offset="100%" stop-color="#10b981" />
+    </linearGradient>
+    <filter id="glow" x="-20%" y="-20%" width="140%" height="140%">
+      <feGaussianBlur stdDeviation="8" result="blur" />
+      <feComposite in="SourceGraphic" in2="blur" operator="over" />
+    </filter>
+  </defs>
+  <!-- Background -->
+  <rect width="512" height="512" rx="128" fill="url(#bgGrad)" />
+  
+  <!-- Harbor Wave / Grid Motif -->
+  <path d="M 96,360 C 140,340 180,380 224,360 C 268,340 308,380 352,360 C 396,340 416,360 416,360" fill="none" stroke="#334155" stroke-width="4" stroke-dasharray="8 8" />
+  <path d="M 96,400 C 140,380 180,420 224,400 C 268,380 308,420 352,400 C 396,380 416,400 416,400" fill="none" stroke="#334155" stroke-width="4" stroke-dasharray="8 8" />
+
+  <!-- Stylized Ledger Chart Anchor -->
+  <g filter="url(#glow)">
+    <!-- Anchor Ring -->
+    <circle cx="256" cy="160" r="28" fill="none" stroke="url(#lineGrad)" stroke-width="16" />
+    <!-- Anchor Shank / Chart Upward Line -->
+    <path d="M 256,188 L 256,360" fill="none" stroke="url(#lineGrad)" stroke-width="16" stroke-linecap="round" />
+    <!-- Rising Stock Line emerging from anchor base -->
+    <path d="M 128,320 L 220,240 L 290,280 L 384,140" fill="none" stroke="url(#lineGrad)" stroke-width="20" stroke-linecap="round" stroke-linejoin="round" />
+    <!-- Anchor Stock (horizontal bar) -->
+    <path d="M 200,210 L 312,210" fill="none" stroke="url(#lineGrad)" stroke-width="16" stroke-linecap="round" />
+    <!-- Anchor Flukes (curved bottom) -->
+    <path d="M 176,310 C 176,370 336,370 336,310" fill="none" stroke="url(#lineGrad)" stroke-width="16" stroke-linecap="round" />
+    <!-- Chart Arrow Tip -->
+    <path d="M 350,140 L 384,140 L 384,174" fill="none" stroke="url(#lineGrad)" stroke-width="20" stroke-linecap="round" stroke-linejoin="round" />
+  </g>
+</svg>
