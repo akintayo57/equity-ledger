@@ -130,17 +130,7 @@ const TransactionForm = ({ onClose, initialTx, preSelectedSecurityId }: { onClos
   const [fees, setFees] = useState(initialTx?.fees || 0);
 
   // Modals visibility
-  const [showAddSec, setShowAddSec] = useState(false);
   const [showAddAcc, setShowAddAcc] = useState(false);
-
-  // States for a new security
-  const [newSecTicker, setNewSecTicker] = useState('');
-  const [newSecName, setNewSecName] = useState('');
-  const [newSecExchange, setNewSecExchange] = useState('GASCI');
-  const [newSecCountry, setNewSecCountry] = useState('Guyana');
-  const [newSecCurrency, setNewSecCurrency] = useState<Currency>('GYD');
-  const [newSecSector, setNewSecSector] = useState('Financials');
-  const [newSecPrice, setNewSecPrice] = useState(1);
 
   // States for a new broker account
   const [newAccName, setNewAccName] = useState('');
@@ -173,38 +163,7 @@ const TransactionForm = ({ onClose, initialTx, preSelectedSecurityId }: { onClos
     onClose();
   };
 
-  const handleAddSecurity = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!newSecTicker || !newSecName) return;
 
-    const newId = await addSecurity({
-      companyName: newSecName,
-      ticker: newSecTicker.trim().toUpperCase(),
-      exchange: newSecExchange,
-      country: newSecCountry,
-      currency: newSecCurrency,
-      sector: newSecSector,
-      status: 'ACTIVE'
-    });
-
-    if (newSecPrice > 0) {
-      await addPriceUpdate({
-        securityId: newId,
-        date: new Date().toISOString().split('T')[0],
-        price: Number(newSecPrice),
-        currency: newSecCurrency,
-        source: 'Initial Setup'
-      });
-    }
-
-    setSecId(newId);
-    setShowAddSec(false);
-    
-    // Reset inputs
-    setNewSecTicker('');
-    setNewSecName('');
-    setNewSecPrice(1);
-  };
 
   const handleAddAccount = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -245,16 +204,7 @@ const TransactionForm = ({ onClose, initialTx, preSelectedSecurityId }: { onClos
             </div>
             
             <div>
-              <div className="flex justify-between items-center mb-1">
-                <label className="block text-xs text-slate-500">Security / Stock</label>
-                <button 
-                  type="button" 
-                  onClick={() => setShowAddSec(true)}
-                  className="text-[10px] text-blue-600 hover:text-blue-800 font-semibold"
-                >
-                  + Add New Stock
-                </button>
-              </div>
+              <label className="block text-xs text-slate-500 mb-1">Security / Stock</label>
               <select value={secId} onChange={e => setSecId(e.target.value)} className="w-full text-sm border border-slate-300 rounded p-1.5 focus:ring-blue-500 bg-white">
                 {securities.map(s => <option key={s.id} value={s.id}>{s.ticker} - {s.companyName}</option>)}
               </select>
@@ -298,79 +248,7 @@ const TransactionForm = ({ onClose, initialTx, preSelectedSecurityId }: { onClos
         </CardContent>
       </Card>
 
-      {/* Modal to add a new Security */}
-      <Modal isOpen={showAddSec} onClose={() => setShowAddSec(false)} title="Create Custom Security / Stock">
-        <form onSubmit={handleAddSecurity} className="space-y-4">
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <label className="block text-xs text-slate-400 mb-1">Ticker Symbol</label>
-              <input type="text" required placeholder="e.g. DBL" value={newSecTicker} onChange={e => setNewSecTicker(e.target.value)} className="w-full text-sm bg-slate-800 border border-slate-700 rounded p-1.5 text-slate-100 focus:ring-blue-500 focus:outline-none" />
-            </div>
-            <div>
-              <label className="block text-xs text-slate-400 mb-1">Exchange</label>
-              <select value={newSecExchange} onChange={e => setNewSecExchange(e.target.value)} className="w-full text-sm bg-slate-800 border border-slate-700 rounded p-1.5 text-slate-100 focus:ring-blue-500 focus:outline-none">
-                <option value="GASCI">GASCI (Guyana)</option>
-                <option value="JSE">JSE (Jamaica)</option>
-                <option value="TTSE">TTSE (Trinidad)</option>
-                <option value="BSE">BSE (Barbados)</option>
-                <option value="Other">Other</option>
-              </select>
-            </div>
-          </div>
 
-          <div>
-            <label className="block text-xs text-slate-400 mb-1">Company Name</label>
-            <input type="text" required placeholder="e.g. Demerara Bank Limited" value={newSecName} onChange={e => setNewSecName(e.target.value)} className="w-full text-sm bg-slate-800 border border-slate-700 rounded p-1.5 text-slate-100 focus:ring-blue-500 focus:outline-none" />
-          </div>
-
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <label className="block text-xs text-slate-400 mb-1">Country</label>
-              <select value={newSecCountry} onChange={e => setNewSecCountry(e.target.value)} className="w-full text-sm bg-slate-800 border border-slate-700 rounded p-1.5 text-slate-100 focus:ring-blue-500 focus:outline-none">
-                <option value="Guyana">Guyana</option>
-                <option value="Jamaica">Jamaica</option>
-                <option value="Trinidad & Tobago">Trinidad & Tobago</option>
-                <option value="Barbados">Barbados</option>
-                <option value="OECS">OECS</option>
-              </select>
-            </div>
-            <div>
-              <label className="block text-xs text-slate-400 mb-1">Local Currency</label>
-              <select value={newSecCurrency} onChange={e => setNewSecCurrency(e.target.value as Currency)} className="w-full text-sm bg-slate-800 border border-slate-700 rounded p-1.5 text-slate-100 focus:ring-blue-500 focus:outline-none">
-                <option value="GYD">GYD</option>
-                <option value="JMD">JMD</option>
-                <option value="TTD">TTD</option>
-                <option value="BBD">BBD</option>
-                <option value="XCD">XCD</option>
-                <option value="USD">USD</option>
-              </select>
-            </div>
-          </div>
-
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <label className="block text-xs text-slate-400 mb-1">Sector</label>
-              <select value={newSecSector} onChange={e => setNewSecSector(e.target.value)} className="w-full text-sm bg-slate-800 border border-slate-700 rounded p-1.5 text-slate-100 focus:ring-blue-500 focus:outline-none">
-                <option value="Financials">Financials</option>
-                <option value="Consumer Staples">Consumer Staples</option>
-                <option value="Industrials">Industrials</option>
-                <option value="Utilities">Utilities</option>
-                <option value="Real Estate">Real Estate</option>
-                <option value="Conglomerate">Conglomerate</option>
-              </select>
-            </div>
-            <div>
-              <label className="block text-xs text-slate-400 mb-1">Initial Price</label>
-              <input type="number" step="0.01" required value={newSecPrice} onChange={e => setNewSecPrice(Number(e.target.value))} className="w-full text-sm bg-slate-800 border border-slate-700 rounded p-1.5 text-slate-100 focus:ring-blue-500 focus:outline-none" />
-            </div>
-          </div>
-
-          <div className="flex justify-end space-x-2 pt-3 border-t border-slate-800 mt-2">
-            <button type="button" onClick={() => setShowAddSec(false)} className="px-3 py-1.5 text-sm text-slate-400 hover:bg-slate-800 rounded">Cancel</button>
-            <button type="submit" className="px-3 py-1.5 text-sm bg-blue-600 hover:bg-blue-500 text-white rounded font-semibold transition-colors">Add Stock</button>
-          </div>
-        </form>
-      </Modal>
 
       {/* Modal to add a new Account */}
       <Modal isOpen={showAddAcc} onClose={() => setShowAddAcc(false)} title="Create Broker / Portfolio Account">
