@@ -1,6 +1,5 @@
 import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { Security, Account, Transaction, PriceUpdate, FXRate, HoldingCalculation, PortfolioSummary } from './types';
-import { initialSecurities, initialPrices, initialFXRates } from './mockData';
 import { calculateHoldings } from './utils';
 import { User } from 'firebase/auth';
 import { db } from './firebase';
@@ -41,9 +40,9 @@ interface StoreContextType extends AppState {
 const StoreContext = createContext<StoreContextType | undefined>(undefined);
 
 export const StoreProvider = ({ children, user }: { children: ReactNode; user: User }) => {
-  const [securities, setSecurities] = useState<Security[]>(initialSecurities);
-  const [prices, setPrices] = useState<PriceUpdate[]>(initialPrices);
-  const [fxRates, setFXRates] = useState<FXRate[]>(initialFXRates);
+  const [securities, setSecurities] = useState<Security[]>([]);
+  const [prices, setPrices] = useState<PriceUpdate[]>([]);
+  const [fxRates, setFXRates] = useState<FXRate[]>([]);
   
   const [accounts, setAccounts] = useState<Account[]>([]);
   const [transactions, setTransactions] = useState<Transaction[]>([]);
@@ -54,41 +53,20 @@ export const StoreProvider = ({ children, user }: { children: ReactNode; user: U
   useEffect(() => {
     // 1. Sync Securities
     const unsubSecurities = onSnapshot(collection(db, 'securities'), (snap) => {
-      if (snap.empty) {
-        // If Firestore securities is empty, seed it with defaults
-        initialSecurities.forEach(async (sec) => {
-          await setDoc(doc(db, 'securities', sec.id), sec);
-        });
-      } else {
-        const secs = snap.docs.map(d => ({ ...d.data(), id: d.id } as Security));
-        setSecurities(secs);
-      }
+      const secs = snap.docs.map(d => ({ ...d.data(), id: d.id } as Security));
+      setSecurities(secs);
     });
 
     // 2. Sync Prices
     const unsubPrices = onSnapshot(collection(db, 'prices'), (snap) => {
-      if (snap.empty) {
-        // Seed if empty
-        initialPrices.forEach(async (px) => {
-          await setDoc(doc(db, 'prices', px.id), px);
-        });
-      } else {
-        const pxs = snap.docs.map(d => ({ ...d.data(), id: d.id } as PriceUpdate));
-        setPrices(pxs);
-      }
+      const pxs = snap.docs.map(d => ({ ...d.data(), id: d.id } as PriceUpdate));
+      setPrices(pxs);
     });
 
     // 3. Sync FX Rates
     const unsubFX = onSnapshot(collection(db, 'fxRates'), (snap) => {
-      if (snap.empty) {
-        // Seed if empty
-        initialFXRates.forEach(async (fx) => {
-          await setDoc(doc(db, 'fxRates', fx.id), fx);
-        });
-      } else {
-        const fxs = snap.docs.map(d => ({ ...d.data(), id: d.id } as FXRate));
-        setFXRates(fxs);
-      }
+      const fxs = snap.docs.map(d => ({ ...d.data(), id: d.id } as FXRate));
+      setFXRates(fxs);
     });
 
     return () => {
