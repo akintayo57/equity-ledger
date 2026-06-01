@@ -1,4 +1,4 @@
-import { Security, Account, Transaction, PriceUpdate, FXRate, Currency } from './types';
+import { Security, PriceUpdate, FXRate, Currency } from './types';
 
 export const initialSecurities: Security[] = [
   { id: 'sec-1', companyName: 'Guyana Bank for Trade and Industry Limited', ticker: 'GBTI', exchange: 'GASCI', country: 'Guyana', currency: 'GYD', sector: 'Financials', status: 'ACTIVE', fundamentals: { peRatio: 12.5, eps: 45.2, dividendYield: 2.1, pbRatio: 1.4, roe: 15.2, lastUpdated: '2023-12-31' } },
@@ -28,36 +28,6 @@ export const initialSecurities: Security[] = [
   { id: 'sec-rdl', companyName: 'Rupununi Development Company Limited', ticker: 'RDL', exchange: 'GASCI', country: 'Guyana', currency: 'GYD', sector: 'Consumer Staples', status: 'ACTIVE' },
   { id: 'sec-spl', companyName: 'Sterling Products Limited', ticker: 'SPL', exchange: 'GASCI', country: 'Guyana', currency: 'GYD', sector: 'Consumer Staples', status: 'ACTIVE' },
   { id: 'sec-tcl', companyName: 'Trinidad Cement Limited', ticker: 'TCL', exchange: 'GASCI', country: 'Guyana', currency: 'GYD', sector: 'Industrials', status: 'ACTIVE' },
-];
-
-export const initialWatchlist: string[] = ['sec-2', 'sec-4', 'sec-7'];
-
-export const initialAccounts: Account[] = [
-  { id: 'acc-1', brokerName: 'Guyana Americas Merchant Bank', country: 'Guyana', baseCurrency: 'GYD', notes: 'Main Guyana account' },
-  { id: 'acc-2', brokerName: 'JMMB Securities', country: 'Jamaica', baseCurrency: 'JMD' },
-  { id: 'acc-3', brokerName: 'Direct Certificate', country: 'Guyana', baseCurrency: 'GYD', notes: 'Physical share certificates' },
-];
-
-export const initialTransactions: Transaction[] = [
-  // GBTI (Buy, Dividend, Buy)
-  { id: 'tx-1', securityId: 'sec-1', accountId: 'acc-1', date: '2022-01-15', type: 'BUY', shares: 500, pricePerShare: 650, currency: 'GYD', fees: 2000, notes: 'Initial investment' },
-  { id: 'tx-2', securityId: 'sec-1', accountId: 'acc-1', date: '2023-01-10', type: 'DIVIDEND', shares: 0, pricePerShare: 20, currency: 'GYD', fees: 0, notes: 'Annual dividend' },
-  { id: 'tx-3', securityId: 'sec-1', accountId: 'acc-1', date: '2024-02-05', type: 'BUY', shares: 200, pricePerShare: 780, currency: 'GYD', fees: 1000 },
-  
-  // Banks DIH (Buy, Sell taking partial profit)
-  { id: 'tx-4', securityId: 'sec-3', accountId: 'acc-1', date: '2023-04-10', type: 'BUY', shares: 2000, pricePerShare: 120, currency: 'GYD', fees: 1500 },
-  { id: 'tx-5', securityId: 'sec-3', accountId: 'acc-1', date: '2024-10-15', type: 'SELL', shares: 500, pricePerShare: 140, currency: 'GYD', fees: 500, notes: 'Taking some profit' },
-  
-  // Republic Financial (Stale data demo)
-  { id: 'tx-6', securityId: 'sec-5', accountId: 'acc-2', date: '2023-06-20', type: 'BUY', shares: 100, pricePerShare: 135, currency: 'TTD', fees: 50 },
-  
-  // GraceKennedy (Dollar cost averaging, Gain demo)
-  { id: 'tx-7', securityId: 'sec-7', accountId: 'acc-2', date: '2023-08-15', type: 'BUY', shares: 1000, pricePerShare: 70, currency: 'JMD', fees: 1000 },
-  { id: 'tx-8', securityId: 'sec-7', accountId: 'acc-2', date: '2024-01-20', type: 'BUY', shares: 500, pricePerShare: 65, currency: 'JMD', fees: 500 },
-  { id: 'tx-9', securityId: 'sec-7', accountId: 'acc-2', date: '2024-12-01', type: 'SELL', shares: 200, pricePerShare: 78, currency: 'JMD', fees: 200 },
-
-  // FirstCaribbean (Loss demo)
-  { id: 'tx-10', securityId: 'sec-9', accountId: 'acc-1', date: '2023-11-01', type: 'BUY', shares: 2000, pricePerShare: 2.1, currency: 'BBD', fees: 15 },
 ];
 
 // Helpers to generate weekly historical prices and exchange rates over 6 months
