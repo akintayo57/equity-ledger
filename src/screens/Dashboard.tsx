@@ -3,6 +3,7 @@ import { Card, CardContent, Badge } from '../components/ui/Cards';
 import { formatMoney, formatPercentage } from '../utils';
 import { AlertCircle, ArrowUpRight, ArrowDownRight, Star } from 'lucide-react';
 import { useMemo, useState } from 'react';
+import { Link } from 'react-router-dom';
 
 export const Dashboard = () => {
   const { 
@@ -156,18 +157,22 @@ export const Dashboard = () => {
       <Card>
         <CardContent>
           <div className="font-semibold text-slate-800 mb-4 border-b border-slate-100 pb-2">Largest Holdings</div>
-          <div className="space-y-4">
+          <div className="space-y-3">
             {holdings.slice(0, 3).map(h => (
-              <div key={h.security.id} className="flex justify-between items-center">
+              <Link 
+                to={`/holdings/${h.security.id}`} 
+                key={h.security.id} 
+                className="flex justify-between items-center hover:bg-slate-50 p-2 -mx-2 rounded-lg transition-colors block cursor-pointer"
+              >
                 <div>
-                  <div className="font-medium text-slate-900">{h.security.ticker}</div>
-                  <div className="text-xs text-slate-500">{h.security.exchange} • {h.security.country}</div>
+                  <div className="font-semibold text-slate-900 text-sm">{h.security.ticker}</div>
+                  <div className="text-[11px] text-slate-400">{h.security.exchange} • {h.security.country}</div>
                 </div>
                 <div className="text-right">
-                  <div className="font-medium">{formatPercentage(h.portfolioWeight)}</div>
-                  <div className="text-xs text-slate-500">{formatMoney(h.marketValueUSD, 'USD')}</div>
+                  <div className="font-bold text-sm text-slate-900">{formatPercentage(h.portfolioWeight)}</div>
+                  <div className="text-[11px] text-slate-400">{formatMoney(h.marketValueUSD, 'USD')}</div>
                 </div>
-              </div>
+              </Link>
             ))}
             {holdings.length === 0 && (
               <div className="text-slate-400 text-sm py-2">No active holdings in portfolio. Add transactions to see stats.</div>
@@ -204,12 +209,16 @@ export const Dashboard = () => {
           <Card>
             <CardContent className="p-4">
               <div className="text-xs font-semibold text-slate-500 uppercase mb-3">Top Portfolio Gainers</div>
-              <div className="space-y-3">
+              <div className="space-y-2">
                 {topGainers.filter(g => g.unrealizedGainLossPctUSD > 0).map(g => (
-                  <div key={g.security.id} className="flex justify-between items-center">
-                    <span className="font-medium text-sm">{g.security.ticker}</span>
-                    <span className="text-emerald-600 text-sm font-medium">+{formatPercentage(g.unrealizedGainLossPctUSD)}</span>
-                  </div>
+                  <Link 
+                    to={`/holdings/${g.security.id}`} 
+                    key={g.security.id} 
+                    className="flex justify-between items-center hover:bg-slate-50 p-2 -mx-2 rounded-lg transition-colors block cursor-pointer"
+                  >
+                    <span className="font-semibold text-slate-900 text-sm">{g.security.ticker}</span>
+                    <span className="text-emerald-600 text-sm font-bold">+{formatPercentage(g.unrealizedGainLossPctUSD)}</span>
+                  </Link>
                 ))}
                 {topGainers.filter(g => g.unrealizedGainLossPctUSD > 0).length === 0 && (
                   <div className="text-slate-400 text-xs py-1">No positive gainers.</div>
@@ -220,12 +229,16 @@ export const Dashboard = () => {
           <Card>
             <CardContent className="p-4">
               <div className="text-xs font-semibold text-slate-500 uppercase mb-3">Top Portfolio Losers</div>
-              <div className="space-y-3">
+              <div className="space-y-2">
                 {topLosers.filter(l => l.unrealizedGainLossPctUSD < 0).map(l => (
-                  <div key={l.security.id} className="flex justify-between items-center">
-                    <span className="font-medium text-sm">{l.security.ticker}</span>
-                    <span className="text-rose-600 text-sm font-medium">{formatPercentage(l.unrealizedGainLossPctUSD)}</span>
-                  </div>
+                  <Link 
+                    to={`/holdings/${l.security.id}`} 
+                    key={l.security.id} 
+                    className="flex justify-between items-center hover:bg-slate-50 p-2 -mx-2 rounded-lg transition-colors block cursor-pointer"
+                  >
+                    <span className="font-semibold text-slate-900 text-sm">{l.security.ticker}</span>
+                    <span className="text-rose-600 text-sm font-bold">{formatPercentage(l.unrealizedGainLossPctUSD)}</span>
+                  </Link>
                 ))}
                 {topLosers.filter(l => l.unrealizedGainLossPctUSD < 0).length === 0 && (
                   <div className="text-slate-400 text-xs py-1">No negative losers.</div>
@@ -294,11 +307,19 @@ export const Dashboard = () => {
                   marketGainers.map(mover => {
                     const isWatched = watchlist.includes(mover.security.id);
                     return (
-                      <div key={mover.security.id} className="flex justify-between items-center bg-slate-50/70 hover:bg-slate-100/70 p-3 rounded-xl transition-all">
+                      <Link 
+                        to={`/holdings/${mover.security.id}`} 
+                        key={mover.security.id} 
+                        className="flex justify-between items-center bg-slate-50/70 hover:bg-slate-100/70 p-3 rounded-xl transition-all block cursor-pointer"
+                      >
                         <div className="flex items-center space-x-3 min-w-0">
                           {/* Watchlist Toggle */}
                           <button
-                            onClick={() => toggleWatchlist(mover.security.id)}
+                            onClick={(e) => {
+                              e.preventDefault();
+                              e.stopPropagation();
+                              toggleWatchlist(mover.security.id);
+                            }}
                             className="p-1 rounded-lg hover:bg-slate-200/50 transition-colors shrink-0 cursor-pointer"
                             title={isWatched ? "Remove from watchlist" : "Add to watchlist"}
                           >
@@ -326,7 +347,7 @@ export const Dashboard = () => {
                             {mover.changePct >= 0 ? '+' : ''}{formatPercentage(mover.changePct)}
                           </div>
                         </div>
-                      </div>
+                      </Link>
                     );
                   })
                 )}
@@ -346,11 +367,19 @@ export const Dashboard = () => {
                   marketLosers.map(mover => {
                     const isWatched = watchlist.includes(mover.security.id);
                     return (
-                      <div key={mover.security.id} className="flex justify-between items-center bg-slate-50/70 hover:bg-slate-100/70 p-3 rounded-xl transition-all">
+                      <Link 
+                        to={`/holdings/${mover.security.id}`} 
+                        key={mover.security.id} 
+                        className="flex justify-between items-center bg-slate-50/70 hover:bg-slate-100/70 p-3 rounded-xl transition-all block cursor-pointer"
+                      >
                         <div className="flex items-center space-x-3 min-w-0">
                           {/* Watchlist Toggle */}
                           <button
-                            onClick={() => toggleWatchlist(mover.security.id)}
+                            onClick={(e) => {
+                              e.preventDefault();
+                              e.stopPropagation();
+                              toggleWatchlist(mover.security.id);
+                            }}
                             className="p-1 rounded-lg hover:bg-slate-200/50 transition-colors shrink-0 cursor-pointer"
                             title={isWatched ? "Remove from watchlist" : "Add to watchlist"}
                           >
@@ -378,7 +407,7 @@ export const Dashboard = () => {
                             {mover.changePct >= 0 ? '+' : ''}{formatPercentage(mover.changePct)}
                           </div>
                         </div>
-                      </div>
+                      </Link>
                     );
                   })
                 )}
@@ -390,4 +419,5 @@ export const Dashboard = () => {
     </div>
   );
 };
+
 
