@@ -1,10 +1,12 @@
 # Harbour Finance & Caribbean Equity Ledger
 
-A unified ecosystem for tracking, analyzing, and auditing stock portfolios across Caribbean stock exchanges, specifically featuring a complete historical data pipeline for the **Guyana Stock Exchange (GASCI)**.
+A unified ecosystem for tracking, analyzing, and auditing stock portfolios across Caribbean stock exchanges, specifically featuring complete historical data pipelines for the **Guyana Stock Exchange (GASCI)** and the **Barbados Stock Exchange (BSE)**.
 
 This repository consists of two core components:
 1. **Harbour Finance (Frontend Web App):** A React + TypeScript web application that provides portfolio tracking, holding ledger, performance trends (Value vs. Return % charts), multi-currency conversions, and Google Authentication synced to Firebase Firestore.
-2. **GASCI Stock Exchange Offline Collector (Data Pipeline):** A Python offline scraping, parsing, validation, and export pipeline that extracts 23 years of historical trading data from the Guyana Stock Exchange, handles name normalizations, parses stale prices, and exports clean CSV tables.
+2. **Offline Data Collectors (Data Pipelines):**
+   * **GASCI Stock Exchange Offline Collector:** A Python offline scraping, parsing, validation, and export pipeline that extracts historical trading data from the Guyana Stock Exchange, handles name normalizations, parses stale prices, and exports clean CSV tables.
+   * **BSE Barbados Stock Exchange Offline Collector:** A Python offline fetching, parsing, and export pipeline that downloads daily CSV reports from the Barbados Stock Exchange, parses sections (Main, Fixed Income, ISM), normalizes regional listings, and exports CSV tables. Both collectors feed a single unified SQLite database.
 
 ---
 
@@ -16,16 +18,28 @@ graph TD
     classDef data fill:#065f46,stroke:#059669,stroke-width:2px,color:#fff;
     classDef client fill:#701a75,stroke:#d946ef,stroke-width:2px,color:#fff;
     
-    A[GASCI Website guyanastockexchangeinc.com] -->|Live Fetch / Scraping| B[Python Collector Module]
-    B -->|Cache Raw HTML| C[(Local Cache Folder data/raw/)]
-    C -->|Idempotent Re-read| B
-    B -->|Parse & Normalize| D[(SQLite DB gasci.sqlite)]
-    D -->|Export CSV Tables| E[CSV Datasets exports/]
-    E -->|TypeScript Seeding Script| F[(Firebase Firestore DB)]
+    A1[GASCI Website guyanastockexchangeinc.com] -->|Live Fetch / Scraping| B1[GASCI Collector]
+    A2[BSE Website bse.com.bb] -->|Live CSV Download| B2[BSE Collector]
+    
+    B1 -->|Cache HTML| C1[(Local Cache data/raw/)]
+    B2 -->|Cache CSV| C2[(Local Cache data/raw_bse/)]
+    
+    C1 -->|Re-read| B1
+    C2 -->|Re-read| B2
+    
+    B1 -->|Parse & Normalize| D[(SQLite DB gasci.sqlite)]
+    B2 -->|Parse & Normalize| D
+    
+    D -->|Export CSV Tables| E1[GASCI CSV Exports exports/]
+    D -->|Export CSV Tables| E2[BSE CSV Exports exports/]
+    
+    E1 -->|TypeScript Import| F[(Firebase Firestore DB)]
+    E2 -->|TypeScript Import| F
+    
     F -->|Real-time Sync| G[Harbour Finance React App]
 
-    class B,F main;
-    class C,D,E data;
+    class B1,B2,F main;
+    class C1,C2,D,E1,E2 data;
     class G client;
 ```
 
@@ -76,25 +90,17 @@ npm run build
 
 ---
 
-## 2. GASCI Stock Exchange Offline Collector (Python Pipeline)
+## 2. Offline Data Collectors (Python Pipelines)
 
-The collector tool acts as an offline pipeline. It discovers weekly trade archives from the exchange, downloads and caches raw HTML files, normalizes security tickers, and resolves carried-forward stale price records.
+The collector tools act as offline pipelines to crawl historical sessions, cache fetched content on disk, parse raw formats, and upsert records into a unified SQLite database (`data/gasci.sqlite`).
 
 ### Technical Stack
 * **Language:** Python 3.9+
-* **HTML Parsing:** BeautifulSoup4
+* **Libraries:** Requests, BeautifulSoup4
 * **Database:** SQLite
-* **HTTP Library:** Requests
 * **Testing:** Pytest
 
-### Key Pipeline Features
-* **Sucuri Firewall Bypassing:** Configured with realistic HTTP user-agent headers and polite request pacing.
-* **Polite Crawling (`--live-fetch-limit`):** To avoid triggering firewall blocks, the build/update command supports limiting the number of live HTTP requests made in a single execution.
-* **Disk Caching:** All fetched URLs are saved in `data/raw/`. Rerunning commands instantly skips cached files, making the scraper highly idempotent.
-* **Stale Prices Resolution:** If a stock did not trade during a weekly session, the exchange carries forward its last traded price. The tool inspects the trade date and records the price under its *actual transaction date* with a lower confidence rating, preventing portfolio visualizations from showing flatlines.
-
-### Execution Instructions
-
+### Setup Instructions
 1. Navigate to the collector subdirectory:
    ```bash
    cd equity-ledger
@@ -103,32 +109,41 @@ The collector tool acts as an offline pipeline. It discovers weekly trade archiv
    ```bash
    python3 -m pip install requests beautifulsoup4 pytest
    ```
-3. Run the Collector CLI:
-   * **Build the database from scratch (caching pages & parsing):**
-     ```bash
-     python3 -m gasci_collector build
-     ```
-     *Support Flags:*
-     * `--live-fetch-limit <N>`: Stop the crawl after making $N$ live network requests (uses cached files for the rest).
-     * `--start-date YYYY-MM-DD` / `--end-date YYYY-MM-DD`: Crawl and parse sessions only within a specific range.
-   * **Incrementally update database with new sessions:**
-     ```bash
-     python3 -m gasci_collector update
-     ```
-   * **Run data quality check suite:**
-     ```bash
-     python3 -m gasci_collector validate
-     ```
-   * **Export database tables to CSV:**
-     ```bash
-     python3 -m gasci_collector export
-     ```
+
+### Running the Collectors
+
+#### GASCI Guyana Stock Exchange Collector
+Run the tool using the module syntax:
+```bash
+python3 -m gasci_collector build [options]
+python3 -m gasci_collector update [options]
+python3 -m gasci_collector validate
+python3 -m gasci_collector export
+```
+* **`build`**: Crawl historical weekly session pages.
+* **`update`**: Incrementally check index page for new sessions.
+* **`validate`**: Run data quality validations (future dates, negative values, stale alerts).
+* **`export`**: Export CSV files to `exports/` (`securities.csv`, `sessions.csv`, `prices.csv`, `gasci_historical_prices.csv`).
+
+#### BSE Barbados Stock Exchange Collector
+Run the tool using the module syntax:
+```bash
+python3 -m bse_collector.cli build [options]
+python3 -m bse_collector.cli update [options]
+python3 -m bse_collector.cli export
+python3 -m bse_collector.cli list-securities
+python3 -m bse_collector.cli list-sessions
+```
+* **`build`**: Crawl weekdays in a range and fetch daily CSV files from BSE.
+  * *Flags:* `--start-date YYYY-MM-DD` and `--end-date YYYY-MM-DD` to restrict range (defaults to a 14-day lookback).
+* **`update`**: Find the maximum session date in the DB and incrementally crawl/fetch up to today.
+* **`export`**: Export CSV files to `exports/` (`bse_securities.csv`, `bse_sessions.csv`, `bse_prices.csv`, `bse_historical_prices.csv`).
 
 ---
 
 ## 3. Database Seeding & Data Backfill
 
-To upload raw CSV data to Firestore, a node typescript utility is executed.
+To upload raw CSV data to Firestore, a Node TypeScript utility is executed.
 
 1. Relax Firestore write rules in `firestore.rules`.
 2. Execute the seeding script (e.g., `npx tsx scratch/import_range_prices.ts`):

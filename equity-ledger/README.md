@@ -124,7 +124,33 @@ To prevent duplicate securities when the source website spells company names sli
 
 ---
 
-## Future Expansion: Adding Other Exchanges
-The tool is architected to allow adding other Caribbean exchanges (e.g., Jamaica Stock Exchange - JSE, Trinidad & Tobago Stock Exchange - TTSE) later:
-1. **Exchange Code Routing**: The database includes an `exchanges` table. You can register another exchange record (e.g. `JSE`) and map security entries to its `exchange_id`.
-2. **Modular Scraping**: Add another folder under `parse/` (e.g., `parse/jse_sessions.py`) implementing separate DOM parsing logic, and call it from `cli.py` based on an exchange target argument (e.g. `--exchange JSE`).
+## Integrated Exchanges
+
+The database and pipeline are designed to support multiple regional exchanges:
+1. **Guyana Stock Exchange (GASCI)**: Uses weekly HTML session parsing. Refer to the commands above for `gasci_collector`.
+2. **Barbados Stock Exchange (BSE)**: Uses daily CSV downloads. Run via the `bse_collector` module:
+
+```bash
+# Build/crawl weekdays in range
+python3 -m bse_collector.cli build --start-date 2026-05-25 --end-date 2026-06-01
+
+# Incrementally update from latest stored session to today
+python3 -m bse_collector.cli update
+
+# Export CSV tables and consolidated historical pricing
+python3 -m bse_collector.cli export
+
+# Query lists in DB
+python3 -m bse_collector.cli list-securities
+python3 -m bse_collector.cli list-sessions
+```
+
+---
+
+## Directory Layout (Updated)
+All raw data, compiled databases, and generated exports are saved within the project folder:
+* **`data/raw/`**: Offline raw HTML cache for GASCI.
+* **`data/raw_bse/`**: Offline raw CSV cache for BSE daily reports.
+* **`data/gasci.sqlite`**: Unified SQLite database holding exchanges, securities, trade sessions, price points, and collection logs.
+* **`exports/`**: Generated CSV exports for both exchanges.
+

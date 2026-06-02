@@ -20,3 +20,4 @@ dev = [
 
 [project.scripts]
 gasci-collector = "gasci_collector.cli:main"
+bse-collector = "bse_collector.cli:main"
