@@ -1,11 +1,20 @@
 import { useStore } from '../store';
-import { Card, CardContent, StatBox, Badge } from '../components/ui/Cards';
+import { Card, CardContent, Badge } from '../components/ui/Cards';
 import { formatMoney, formatPercentage } from '../utils';
-import { AlertCircle, ArrowUpRight, ArrowDownRight } from 'lucide-react';
-import { useMemo } from 'react';
+import { AlertCircle, ArrowUpRight, ArrowDownRight, Star } from 'lucide-react';
+import { useMemo, useState } from 'react';
 
 export const Dashboard = () => {
-  const { holdings, portfolioSummary } = useStore();
+  const { 
+    holdings, 
+    portfolioSummary, 
+    securities, 
+    prices, 
+    watchlist, 
+    toggleWatchlist 
+  } = useStore();
+
+  const [selectedExchange, setSelectedExchange] = useState<'ALL' | 'GASCI' | 'BSE'>('ALL');
 
   const isGreen = portfolioSummary.unrealizedGainUSD >= 0;
 
@@ -29,9 +38,70 @@ export const Dashboard = () => {
     });
     return Array.from(acc.entries()).map(([country, val]) => ({
       country,
-      pct: (val / portfolioSummary.totalMarketValueUSD) * 100
+      pct: portfolioSummary.totalMarketValueUSD > 0 ? (val / portfolioSummary.totalMarketValueUSD) * 100 : 0
     })).sort((a, b) => b.pct - a.pct);
   }, [holdings, portfolioSummary.totalMarketValueUSD]);
+
+  // Market Movers calculations for all listed stocks
+  const allMovers = useMemo(() => {
+    // 1. Group prices by security ID
+    const pricesBySec = new Map<string, typeof prices>();
+    prices.forEach(p => {
+      if (!pricesBySec.has(p.securityId)) {
+        pricesBySec.set(p.securityId, []);
+      }
+      pricesBySec.get(p.securityId)!.push(p);
+    });
+
+    // 2. Compute change for each security
+    return securities.map(sec => {
+      const secPrices = pricesBySec.get(sec.id) || [];
+      const sortedPrices = [...secPrices].sort((a, b) => b.date.localeCompare(a.date));
+
+      let currentPrice = 0;
+      let prevPrice = 0;
+      let change = 0;
+      let changePct = 0;
+
+      if (sortedPrices.length >= 2) {
+        currentPrice = sortedPrices[0].price;
+        prevPrice = sortedPrices[1].price;
+        change = currentPrice - prevPrice;
+        changePct = prevPrice > 0 ? (change / prevPrice) * 100 : 0;
+      } else if (sortedPrices.length === 1) {
+        currentPrice = sortedPrices[0].price;
+      }
+
+      return {
+        security: sec,
+        currentPrice,
+        prevPrice,
+        change,
+        changePct,
+      };
+    }).filter(mover => mover.currentPrice > 0);
+  }, [securities, prices]);
+
+  // Filter movers by exchange
+  const filteredMovers = useMemo(() => {
+    if (selectedExchange === 'ALL') {
+      return allMovers;
+    }
+    return allMovers.filter(m => m.security.exchange === selectedExchange);
+  }, [allMovers, selectedExchange]);
+
+  // Sort and slice top 4 gainers and losers
+  const marketGainers = useMemo(() => {
+    return [...filteredMovers]
+      .sort((a, b) => b.changePct - a.changePct)
+      .slice(0, 4);
+  }, [filteredMovers]);
+
+  const marketLosers = useMemo(() => {
+    return [...filteredMovers]
+      .sort((a, b) => a.changePct - b.changePct)
+      .slice(0, 4);
+  }, [filteredMovers]);
 
   return (
     <div className="space-y-4">
@@ -99,60 +169,225 @@ export const Dashboard = () => {
                 </div>
               </div>
             ))}
+            {holdings.length === 0 && (
+              <div className="text-slate-400 text-sm py-2">No active holdings in portfolio. Add transactions to see stats.</div>
+            )}
           </div>
         </CardContent>
       </Card>
 
       {/* Allocation */}
-      <Card>
-        <CardContent>
-          <div className="font-semibold text-slate-800 mb-4 border-b border-slate-100 pb-2">Allocation by Country</div>
-          <div className="space-y-3">
-            {allocation.map(a => (
-              <div key={a.country}>
-                <div className="flex justify-between text-sm mb-1">
-                  <span>{a.country}</span>
-                  <span className="font-medium">{formatPercentage(a.pct)}</span>
+      {holdings.length > 0 && (
+        <Card>
+          <CardContent>
+            <div className="font-semibold text-slate-800 mb-4 border-b border-slate-100 pb-2">Allocation by Country</div>
+            <div className="space-y-3">
+              {allocation.map(a => (
+                <div key={a.country}>
+                  <div className="flex justify-between text-sm mb-1">
+                    <span>{a.country}</span>
+                    <span className="font-medium">{formatPercentage(a.pct)}</span>
+                  </div>
+                  <div className="w-full bg-slate-100 h-2 rounded-full overflow-hidden">
+                    <div className="bg-blue-600 h-full" style={{ width: `${a.pct}%` }} />
+                  </div>
                 </div>
-                <div className="w-full bg-slate-100 h-2 rounded-full overflow-hidden">
-                  <div className="bg-blue-600 h-full" style={{ width: `${a.pct}%` }} />
-                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      )}
+      
+      {/* Top Gainers & Losers (Portfolio) */}
+      {holdings.length > 0 && (
+        <div className="grid grid-cols-2 gap-4">
+          <Card>
+            <CardContent className="p-4">
+              <div className="text-xs font-semibold text-slate-500 uppercase mb-3">Top Portfolio Gainers</div>
+              <div className="space-y-3">
+                {topGainers.filter(g => g.unrealizedGainLossPctUSD > 0).map(g => (
+                  <div key={g.security.id} className="flex justify-between items-center">
+                    <span className="font-medium text-sm">{g.security.ticker}</span>
+                    <span className="text-emerald-600 text-sm font-medium">+{formatPercentage(g.unrealizedGainLossPctUSD)}</span>
+                  </div>
+                ))}
+                {topGainers.filter(g => g.unrealizedGainLossPctUSD > 0).length === 0 && (
+                  <div className="text-slate-400 text-xs py-1">No positive gainers.</div>
+                )}
               </div>
-            ))}
+            </CardContent>
+          </Card>
+          <Card>
+            <CardContent className="p-4">
+              <div className="text-xs font-semibold text-slate-500 uppercase mb-3">Top Portfolio Losers</div>
+              <div className="space-y-3">
+                {topLosers.filter(l => l.unrealizedGainLossPctUSD < 0).map(l => (
+                  <div key={l.security.id} className="flex justify-between items-center">
+                    <span className="font-medium text-sm">{l.security.ticker}</span>
+                    <span className="text-rose-600 text-sm font-medium">{formatPercentage(l.unrealizedGainLossPctUSD)}</span>
+                  </div>
+                ))}
+                {topLosers.filter(l => l.unrealizedGainLossPctUSD < 0).length === 0 && (
+                  <div className="text-slate-400 text-xs py-1">No negative losers.</div>
+                )}
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      )}
+
+      {/* Market Overview & Biggest Movers */}
+      <Card>
+        <CardContent className="p-5">
+          <div className="flex justify-between items-center mb-6 border-b border-slate-100 pb-4 flex-wrap gap-3">
+            <div>
+              <div className="font-semibold text-base text-slate-800">Market Overview</div>
+              <div className="text-xs text-slate-400 mt-0.5">Biggest price movers across all regional listed stocks</div>
+            </div>
+            
+            {/* Tabs for Filtering */}
+            <div className="flex space-x-1 bg-slate-100 p-1 rounded-lg text-xs font-medium">
+              <button
+                onClick={() => setSelectedExchange('ALL')}
+                className={`px-3 py-1 rounded-md transition-all cursor-pointer ${
+                  selectedExchange === 'ALL'
+                    ? 'bg-white text-slate-900 shadow-xs'
+                    : 'text-slate-500 hover:text-slate-900'
+                }`}
+              >
+                All Exchanges
+              </button>
+              <button
+                onClick={() => setSelectedExchange('GASCI')}
+                className={`px-3 py-1 rounded-md transition-all cursor-pointer ${
+                  selectedExchange === 'GASCI'
+                    ? 'bg-white text-slate-900 shadow-xs'
+                    : 'text-slate-500 hover:text-slate-900'
+                }`}
+              >
+                🇬🇾 GASCI
+              </button>
+              <button
+                onClick={() => setSelectedExchange('BSE')}
+                className={`px-3 py-1 rounded-md transition-all cursor-pointer ${
+                  selectedExchange === 'BSE'
+                    ? 'bg-white text-slate-900 shadow-xs'
+                    : 'text-slate-500 hover:text-slate-900'
+                }`}
+              >
+                🇧🇧 BSE
+              </button>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            {/* Top Gainers Column */}
+            <div>
+              <div className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-4 flex items-center">
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 mr-2" />
+                Top Gainers
+              </div>
+              <div className="space-y-3">
+                {marketGainers.length === 0 ? (
+                  <div className="text-slate-400 text-xs py-4">No price data available.</div>
+                ) : (
+                  marketGainers.map(mover => {
+                    const isWatched = watchlist.includes(mover.security.id);
+                    return (
+                      <div key={mover.security.id} className="flex justify-between items-center bg-slate-50/70 hover:bg-slate-100/70 p-3 rounded-xl transition-all">
+                        <div className="flex items-center space-x-3 min-w-0">
+                          {/* Watchlist Toggle */}
+                          <button
+                            onClick={() => toggleWatchlist(mover.security.id)}
+                            className="p-1 rounded-lg hover:bg-slate-200/50 transition-colors shrink-0 cursor-pointer"
+                            title={isWatched ? "Remove from watchlist" : "Add to watchlist"}
+                          >
+                            <Star className={`w-3.5 h-3.5 ${isWatched ? 'fill-amber-400 text-amber-400' : 'text-slate-300'}`} />
+                          </button>
+                          
+                          <div className="min-w-0">
+                            <div className="flex items-center space-x-2">
+                              <span className="font-semibold text-slate-900 text-sm">{mover.security.ticker}</span>
+                              <Badge variant={mover.security.exchange === 'GASCI' ? 'blue' : 'yellow'}>
+                                {mover.security.exchange}
+                              </Badge>
+                            </div>
+                            <div className="text-[11px] text-slate-400 truncate max-w-[130px] sm:max-w-[200px]">
+                              {mover.security.companyName}
+                            </div>
+                          </div>
+                        </div>
+
+                        <div className="text-right shrink-0">
+                          <div className="font-bold text-sm text-slate-900">
+                            {formatMoney(mover.currentPrice, mover.security.currency)}
+                          </div>
+                          <div className={`text-xs font-semibold ${mover.changePct >= 0 ? 'text-emerald-600' : 'text-rose-600'}`}>
+                            {mover.changePct >= 0 ? '+' : ''}{formatPercentage(mover.changePct)}
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })
+                )}
+              </div>
+            </div>
+
+            {/* Top Losers Column */}
+            <div>
+              <div className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-4 flex items-center">
+                <span className="w-1.5 h-1.5 rounded-full bg-rose-500 mr-2" />
+                Top Losers
+              </div>
+              <div className="space-y-3">
+                {marketLosers.length === 0 ? (
+                  <div className="text-slate-400 text-xs py-4">No price data available.</div>
+                ) : (
+                  marketLosers.map(mover => {
+                    const isWatched = watchlist.includes(mover.security.id);
+                    return (
+                      <div key={mover.security.id} className="flex justify-between items-center bg-slate-50/70 hover:bg-slate-100/70 p-3 rounded-xl transition-all">
+                        <div className="flex items-center space-x-3 min-w-0">
+                          {/* Watchlist Toggle */}
+                          <button
+                            onClick={() => toggleWatchlist(mover.security.id)}
+                            className="p-1 rounded-lg hover:bg-slate-200/50 transition-colors shrink-0 cursor-pointer"
+                            title={isWatched ? "Remove from watchlist" : "Add to watchlist"}
+                          >
+                            <Star className={`w-3.5 h-3.5 ${isWatched ? 'fill-amber-400 text-amber-400' : 'text-slate-300'}`} />
+                          </button>
+                          
+                          <div className="min-w-0">
+                            <div className="flex items-center space-x-2">
+                              <span className="font-semibold text-slate-900 text-sm">{mover.security.ticker}</span>
+                              <Badge variant={mover.security.exchange === 'GASCI' ? 'blue' : 'yellow'}>
+                                {mover.security.exchange}
+                              </Badge>
+                            </div>
+                            <div className="text-[11px] text-slate-400 truncate max-w-[130px] sm:max-w-[200px]">
+                              {mover.security.companyName}
+                            </div>
+                          </div>
+                        </div>
+
+                        <div className="text-right shrink-0">
+                          <div className="font-bold text-sm text-slate-900">
+                            {formatMoney(mover.currentPrice, mover.security.currency)}
+                          </div>
+                          <div className={`text-xs font-semibold ${mover.changePct >= 0 ? 'text-emerald-600' : 'text-rose-600'}`}>
+                            {mover.changePct >= 0 ? '+' : ''}{formatPercentage(mover.changePct)}
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })
+                )}
+              </div>
+            </div>
           </div>
         </CardContent>
       </Card>
-      
-      {/* Top Gainers & Losers */}
-      <div className="grid grid-cols-2 gap-4">
-        <Card>
-          <CardContent className="p-4">
-            <div className="text-xs font-semibold text-slate-500 uppercase mb-3">Top Gainers</div>
-            <div className="space-y-3">
-              {topGainers.filter(g => g.unrealizedGainLossPctUSD > 0).map(g => (
-                <div key={g.security.id} className="flex justify-between items-center">
-                  <span className="font-medium text-sm">{g.security.ticker}</span>
-                  <span className="text-emerald-600 text-sm font-medium">+{formatPercentage(g.unrealizedGainLossPctUSD)}</span>
-                </div>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="p-4">
-            <div className="text-xs font-semibold text-slate-500 uppercase mb-3">Top Losers</div>
-            <div className="space-y-3">
-              {topLosers.filter(l => l.unrealizedGainLossPctUSD < 0).map(l => (
-                <div key={l.security.id} className="flex justify-between items-center">
-                  <span className="font-medium text-sm">{l.security.ticker}</span>
-                  <span className="text-rose-600 text-sm font-medium">{formatPercentage(l.unrealizedGainLossPctUSD)}</span>
-                </div>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-
     </div>
   );
 };
+
