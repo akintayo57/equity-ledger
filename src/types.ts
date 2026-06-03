@@ -9,16 +9,22 @@ export interface Fundamentals {
   lastUpdated?: string;
 }
 
+export interface Exchange {
+  id: string; // e.g. "GASCI", "BSE", "TTSE", "JSE"
+  name: string;
+  country: string;
+  currency: Currency;
+}
+
 export interface Security {
   id: string;
   companyName: string;
   ticker: string;
-  exchange: string;
-  country: string;
-  currency: Currency;
+  exchangeId: string; // references Exchange.id
   sector: string;
   status: 'ACTIVE' | 'INACTIVE';
   fundamentals?: Fundamentals;
+  currency?: Currency; // Optional override if different from Exchange currency
 }
 
 export interface Account {
@@ -29,7 +35,7 @@ export interface Account {
   notes?: string;
 }
 
-export type TransactionType = 'BUY' | 'SELL' | 'FEE' | 'DIVIDEND' | 'INHERIT';
+export type TransactionType = 'BUY' | 'SELL' | 'FEE' | 'DIVIDEND' | 'INHERIT' | 'SPLIT';
 
 export interface Transaction {
   id: string;
@@ -64,6 +70,20 @@ export interface FXRate {
   source: string;
 }
 
+export interface EquityNote {
+  id: string;
+  securityId: string;
+  date: string;
+  title: string;
+  synopsis: string;
+  peRatio?: number;
+  eps?: number;
+  dividendYield?: number;
+  pbRatio?: number;
+  roe?: number;
+  lastUpdated?: string;
+}
+
 // Derived Data Types
 export interface HoldingCalculation {
   security: Security;
@@ -84,6 +104,11 @@ export interface HoldingCalculation {
   fxRateToUSD: number;
   fxStaleStatus: 'FRESH' | 'STALE' | 'MISSING';
   hasUncertainty?: boolean;
+  totalDividendsLocal: number;
+  totalDividendsUSD: number;
+  currency: Currency;
+  country: string;
+  exchangeName: string;
 }
 
 export interface PortfolioSummary {
@@ -91,4 +116,6 @@ export interface PortfolioSummary {
   totalCostBasisUSD: number;
   unrealizedGainUSD: number;
   capitalGrowthPct: number;
+  totalDividendsUSD: number;
 }
+

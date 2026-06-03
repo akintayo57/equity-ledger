@@ -1,5 +1,5 @@
 import { differenceInDays } from 'date-fns';
-import { Security, Transaction, PriceUpdate, FXRate, HoldingCalculation } from './types';
+import { Security, Transaction, PriceUpdate, FXRate, HoldingCalculation, Exchange } from './types';
 
 export const formatMoney = (value: number, currency: string) => {
   return new Intl.NumberFormat('en-US', {
@@ -37,16 +37,55 @@ export const calculateHoldings = (
   securities: Security[],
   transactions: Transaction[],
   prices: PriceUpdate[],
-  fxRates: FXRate[]
+  fxRates: FXRate[],
+  exchanges: Exchange[]
 ): HoldingCalculation[] => {
+  // Helper to get currency for a security
+  const getSecurityCurrency = (sec: Security): string => {
+    if (sec.currency) return sec.currency;
+    const ex = exchanges.find(e => e.id === sec.exchangeId);
+    return ex ? ex.currency : 'USD';
+  };
+
+  // 1. Filter out splits
+  const splits = transactions.filter(tx => tx.type === 'SPLIT');
+
+  // 2. Adjust BUY, SELL, INHERIT transactions for splits chronologically
+  const adjustedTxs = transactions.map(tx => {
+    if (tx.type === 'DIVIDEND' || tx.type === 'FEE' || tx.type === 'SPLIT') {
+      return tx;
+    }
+
+    // Find all splits for this security that happened strictly after the transaction date
+    const securitySplits = splits
+      .filter(s => s.securityId === tx.securityId && s.date > tx.date)
+      .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+
+    let adjustedShares = tx.shares;
+    let adjustedPrice = tx.pricePerShare;
+
+    securitySplits.forEach(s => {
+      // s.shares contains the split ratio (e.g. 2.0 for 2:1 split)
+      const ratio = s.shares || 1;
+      adjustedShares *= ratio;
+      adjustedPrice /= ratio;
+    });
+
+    return {
+      ...tx,
+      shares: adjustedShares,
+      pricePerShare: adjustedPrice
+    };
+  });
+
   // Group transactions by security and track cost basis in local and USD currencies
   const holdingsMap = new Map<string, { shares: number; costBasis: number; costBasisUSD: number; totalSharesBought: number; hasUncertainty: boolean }>();
 
   // Sort transactions chronologically to calculate average cost step-by-step
-  const sortedTxs = [...transactions].sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+  const sortedTxs = [...adjustedTxs].sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
 
   sortedTxs.forEach((tx) => {
-    if (tx.type === 'DIVIDEND' || tx.type === 'FEE') return; // Fees handled inside BUY/SELL
+    if (tx.type === 'DIVIDEND' || tx.type === 'FEE' || tx.type === 'SPLIT') return;
 
     const current = holdingsMap.get(tx.securityId) || { shares: 0, costBasis: 0, costBasisUSD: 0, totalSharesBought: 0, hasUncertainty: false };
     
@@ -109,8 +148,9 @@ export const calculateHoldings = (
     const data = holdingsMap.get(sec.id);
     if (!data || data.shares <= 0) return; // Only active holdings
 
+    const currency = getSecurityCurrency(sec);
     const latestPriceObj = getLatestPrice(sec.id);
-    const fxRateObj = getUSDToLocalRate(sec.currency);
+    const fxRateObj = getUSDToLocalRate(currency);
 
     const fxRateToUSD = fxRateObj ? (1 / fxRateObj.rate) : 0;
     const fxStaleStatus = fxRateObj ? getFXStaleStatus(fxRateObj.date) : 'MISSING';
@@ -132,6 +172,30 @@ export const calculateHoldings = (
     const unrealizedGainUSD = marketValueUSD - totalCostBasisUSD;
     const unrealizedGainUSDPct = totalCostBasisUSD > 0 ? (unrealizedGainUSD / totalCostBasisUSD) * 100 : 0;
 
+    // Calculate total dividends received
+    const dividendTxs = transactions.filter(tx => tx.securityId === sec.id && tx.type === 'DIVIDEND');
+    let totalDividendsLocal = 0;
+    let totalDividendsUSD = 0;
+
+    dividendTxs.forEach(tx => {
+      let txFxRate = 1;
+      if (tx.currency !== 'USD') {
+        const matchRates = fxRates
+          .filter((fx) => fx.fromCurrency === 'USD' && fx.toCurrency === tx.currency && fx.date <= tx.date)
+          .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+        txFxRate = matchRates.length > 0 ? matchRates[0].rate : 1;
+      }
+      const txFxRateToUSD = 1 / txFxRate;
+      
+      const divAmount = tx.shares * tx.pricePerShare;
+      totalDividendsLocal += divAmount;
+      totalDividendsUSD += divAmount * txFxRateToUSD;
+    });
+
+    const ex = exchanges.find(e => e.id === sec.exchangeId);
+    const country = ex ? ex.country : 'Unknown';
+    const exchangeName = ex ? ex.name : (sec.exchangeId || 'Unknown');
+
     holdings.push({
       security: sec,
       sharesOwned: data.shares,
@@ -151,6 +215,11 @@ export const calculateHoldings = (
       fxRateToUSD,
       fxStaleStatus,
       hasUncertainty: data.hasUncertainty,
+      totalDividendsLocal,
+      totalDividendsUSD,
+      currency: currency as any,
+      country,
+      exchangeName,
     });
   });
 

@@ -8,15 +8,15 @@ import { format, subMonths } from 'date-fns';
 const COLORS = ['#2563eb', '#16a34a', '#d97706', '#dc2626', '#9333ea', '#0284c7', '#be185d'];
 
 export const Performance = () => {
-  const { holdings, portfolioSummary, transactions, securities, prices, fxRates } = useStore();
+  const { holdings, portfolioSummary, transactions, securities, prices, fxRates, exchanges } = useStore();
 
   const countryData = useMemo(() => {
     const map = new Map<string, { value: number; cost: number }>();
     holdings.forEach(h => {
-      const current = map.get(h.security.country) || { value: 0, cost: 0 };
+      const current = map.get(h.country) || { value: 0, cost: 0 };
       current.value += h.marketValueUSD;
       current.cost += h.totalCostBasisUSD;
-      map.set(h.security.country, current);
+      map.set(h.country, current);
     });
     return Array.from(map.entries()).map(([country, data]) => ({
       country,
@@ -89,6 +89,8 @@ export const Performance = () => {
       const sec = securities.find(s => s.id === secId);
       if (!sec) return;
 
+      const currency = sec.currency || exchanges.find(e => e.id === sec.exchangeId)?.currency || 'USD';
+
       // Find price on or before dateStr, with fallback to earliest price if not yet traded
       const matchPrices = prices
         .filter(p => p.securityId === secId && p.date <= dateStr)
@@ -108,15 +110,15 @@ export const Performance = () => {
 
       // Find FX rate on or before dateStr, with fallback to earliest rate
       let fxRate = 1;
-      if (sec.currency !== 'USD') {
+      if (currency !== 'USD') {
         const matchFX = fxRates
-          .filter(fx => fx.fromCurrency === 'USD' && fx.toCurrency === sec.currency && fx.date <= dateStr)
+          .filter(fx => fx.fromCurrency === 'USD' && fx.toCurrency === currency && fx.date <= dateStr)
           .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
         if (matchFX.length > 0) {
           fxRate = matchFX[0].rate;
         } else {
           const allFX = fxRates
-            .filter(fx => fx.fromCurrency === 'USD' && fx.toCurrency === sec.currency)
+            .filter(fx => fx.fromCurrency === 'USD' && fx.toCurrency === currency)
             .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
           if (allFX.length > 0) {
             fxRate = allFX[0].rate;

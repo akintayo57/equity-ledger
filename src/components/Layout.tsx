@@ -1,21 +1,19 @@
 import { Link, Outlet, useLocation } from 'react-router-dom';
-import { LayoutDashboard, Wallet, Briefcase, ArrowLeftRight, Settings, LogOut } from 'lucide-react';
+import { Wallet, Settings, LogOut, TrendingUp } from 'lucide-react';
 import { clsx, type ClassValue } from 'clsx';
 import { twMerge } from 'tailwind-merge';
 import { ReloadPrompt } from './ReloadPrompt';
 import { motion } from 'motion/react';
-import { User, signOut } from 'firebase/auth';
-import { auth } from '../firebase';
+import { User } from 'firebase/auth';
+import { auth, signOut } from '../firebase';
 
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
 }
 
 const navItems = [
-  { name: 'Dashboard', path: '/', icon: LayoutDashboard },
-  { name: 'Holdings', path: '/holdings', icon: Wallet },
-  { name: 'Performance', path: '/performance', icon: Briefcase },
-  { name: 'Transactions', path: '/transactions', icon: ArrowLeftRight },
+  { name: 'Markets', path: '/markets', icon: TrendingUp },
+  { name: 'Portfolio', path: '/', icon: Wallet },
   { name: 'Settings', path: '/settings', icon: Settings },
 ];
 

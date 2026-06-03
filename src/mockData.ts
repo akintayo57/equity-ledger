@@ -1,6 +1,6 @@
 import { Security, PriceUpdate, FXRate, Currency } from './types';
 
-export const initialSecurities: Security[] = [
+export const initialSecurities: any[] = [
   { id: 'sec-1', companyName: 'Guyana Bank for Trade and Industry Limited', ticker: 'GBTI', exchange: 'GASCI', country: 'Guyana', currency: 'GYD', sector: 'Financials', status: 'ACTIVE', fundamentals: { peRatio: 12.5, eps: 45.2, dividendYield: 2.1, pbRatio: 1.4, roe: 15.2, lastUpdated: '2023-12-31' } },
   { id: 'sec-2', companyName: 'Demerara Bank Limited', ticker: 'DBL', exchange: 'GASCI', country: 'Guyana', currency: 'GYD', sector: 'Financials', status: 'ACTIVE', fundamentals: { peRatio: 14.1, eps: 15.0, dividendYield: 3.5, pbRatio: 2.1, roe: 18.4, lastUpdated: '2023-12-31' } },
   { id: 'sec-3', companyName: 'Banks DIH Limited', ticker: 'DIH', exchange: 'GASCI', country: 'Guyana', currency: 'GYD', sector: 'Consumer Staples', status: 'ACTIVE', fundamentals: { peRatio: 8.5, eps: 14.1, dividendYield: 4.2, pbRatio: 1.1, roe: 11.2, lastUpdated: '2023-12-31' } },

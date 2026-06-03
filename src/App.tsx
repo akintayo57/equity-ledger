@@ -4,18 +4,16 @@
  */
 
 import { useState, useEffect } from 'react';
-import { onAuthStateChanged, User } from 'firebase/auth';
-import { auth } from './firebase';
+import { User } from 'firebase/auth';
+import { auth, onAuthStateChanged } from './firebase';
 import { Login } from './components/Login';
 import { HashRouter, Routes, Route } from 'react-router-dom';
 import { StoreProvider } from './store';
 import { Layout } from './components/Layout';
-import { Dashboard } from './screens/Dashboard';
-import { Holdings } from './screens/Holdings';
+import { Portfolio } from './screens/Portfolio';
 import { HoldingDetail } from './screens/HoldingDetail';
-import { Performance } from './screens/Performance';
-import { Transactions } from './screens/Transactions';
 import { DataSettings } from './screens/DataSettings';
+import { Markets } from './screens/Markets';
 
 export default function App() {
   const [user, setUser] = useState<User | null>(null);
@@ -68,11 +66,9 @@ export default function App() {
       <HashRouter>
         <Routes>
           <Route path="/" element={<Layout user={user} />}>
-            <Route index element={<Dashboard />} />
-            <Route path="holdings" element={<Holdings />} />
+            <Route index element={<Portfolio />} />
+            <Route path="markets" element={<Markets />} />
             <Route path="holdings/:id" element={<HoldingDetail />} />
-            <Route path="performance" element={<Performance />} />
-            <Route path="transactions" element={<Transactions />} />
             <Route path="settings" element={<DataSettings />} />
           </Route>
         </Routes>

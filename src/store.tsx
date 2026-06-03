@@ -1,9 +1,9 @@
-import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
-import { Security, Account, Transaction, PriceUpdate, FXRate, HoldingCalculation, PortfolioSummary } from './types';
+import { createContext, useContext, useState, useEffect, useMemo, ReactNode } from 'react';
+import { Security, Account, Transaction, PriceUpdate, FXRate, HoldingCalculation, PortfolioSummary, Exchange, EquityNote } from './types';
 import { calculateHoldings } from './utils';
 import { User } from 'firebase/auth';
-import { db } from './firebase';
 import { 
+  db,
   collection, 
   doc, 
   onSnapshot, 
@@ -11,7 +11,7 @@ import {
   addDoc, 
   deleteDoc, 
   updateDoc 
-} from 'firebase/firestore';
+} from './firebase';
 
 interface AppState {
   securities: Security[];
@@ -19,6 +19,8 @@ interface AppState {
   transactions: Transaction[];
   prices: PriceUpdate[];
   fxRates: FXRate[];
+  exchanges: Exchange[];
+  equityNotes: EquityNote[];
   watchlist: string[];
   loading: boolean;
 }
@@ -35,6 +37,8 @@ interface StoreContextType extends AppState {
   updateSecurity: (id: string, sec: Partial<Security>) => Promise<void>;
   toggleWatchlist: (id: string) => Promise<void>;
   addAccount: (acc: Omit<Account, 'id'>) => Promise<string>;
+  addEquityNote: (note: Omit<EquityNote, 'id'>) => Promise<void>;
+  deleteEquityNote: (id: string) => Promise<void>;
 }
 
 const StoreContext = createContext<StoreContextType | undefined>(undefined);
@@ -43,36 +47,52 @@ export const StoreProvider = ({ children, user }: { children: ReactNode; user: U
   const [securities, setSecurities] = useState<Security[]>([]);
   const [prices, setPrices] = useState<PriceUpdate[]>([]);
   const [fxRates, setFXRates] = useState<FXRate[]>([]);
+  const [exchanges, setExchanges] = useState<Exchange[]>([]);
+  const [equityNotes, setEquityNotes] = useState<EquityNote[]>([]);
   
   const [accounts, setAccounts] = useState<Account[]>([]);
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [watchlist, setWatchlist] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
 
-  // Sync Global Collections (Securities, Prices, FX Rates)
+  // Sync Global Collections (Securities, Prices, FX Rates, Exchanges, Notes)
   useEffect(() => {
-    // 1. Sync Securities
+    // 1. Sync Exchanges
+    const unsubExchanges = onSnapshot(collection(db, 'exchanges'), (snap) => {
+      const exs = snap.docs.map(d => ({ ...d.data(), id: d.id } as Exchange));
+      setExchanges(exs);
+    });
+
+    // 2. Sync Securities
     const unsubSecurities = onSnapshot(collection(db, 'securities'), (snap) => {
       const secs = snap.docs.map(d => ({ ...d.data(), id: d.id } as Security));
       setSecurities(secs);
     });
 
-    // 2. Sync Prices
+    // 3. Sync Prices
     const unsubPrices = onSnapshot(collection(db, 'prices'), (snap) => {
       const pxs = snap.docs.map(d => ({ ...d.data(), id: d.id } as PriceUpdate));
       setPrices(pxs);
     });
 
-    // 3. Sync FX Rates
+    // 4. Sync FX Rates
     const unsubFX = onSnapshot(collection(db, 'fxRates'), (snap) => {
       const fxs = snap.docs.map(d => ({ ...d.data(), id: d.id } as FXRate));
       setFXRates(fxs);
     });
 
+    // 5. Sync Equity Notes
+    const unsubNotes = onSnapshot(collection(db, 'equityNotes'), (snap) => {
+      const nts = snap.docs.map(d => ({ ...d.data(), id: d.id } as EquityNote));
+      setEquityNotes(nts);
+    });
+
     return () => {
+      unsubExchanges();
       unsubSecurities();
       unsubPrices();
       unsubFX();
+      unsubNotes();
     };
   }, []);
 
@@ -111,21 +131,28 @@ export const StoreProvider = ({ children, user }: { children: ReactNode; user: U
     };
   }, [user.uid]);
 
-  const holdings = calculateHoldings(securities, transactions, prices, fxRates);
+  const holdings = useMemo(() => {
+    return calculateHoldings(securities, transactions, prices, fxRates, exchanges);
+  }, [securities, transactions, prices, fxRates, exchanges]);
 
-  const portfolioSummary: PortfolioSummary = holdings.reduce(
-    (acc, curr) => {
-      acc.totalMarketValueUSD += curr.marketValueUSD;
-      acc.totalCostBasisUSD += curr.totalCostBasisUSD;
-      acc.unrealizedGainUSD += curr.unrealizedGainUSD;
-      return acc;
-    },
-    { totalMarketValueUSD: 0, totalCostBasisUSD: 0, unrealizedGainUSD: 0, capitalGrowthPct: 0 }
-  );
+  const portfolioSummary = useMemo(() => {
+    const summary: PortfolioSummary = holdings.reduce(
+      (acc, curr) => {
+        acc.totalMarketValueUSD += curr.marketValueUSD;
+        acc.totalCostBasisUSD += curr.totalCostBasisUSD;
+        acc.unrealizedGainUSD += curr.unrealizedGainUSD;
+        acc.totalDividendsUSD += curr.totalDividendsUSD;
+        return acc;
+      },
+      { totalMarketValueUSD: 0, totalCostBasisUSD: 0, unrealizedGainUSD: 0, capitalGrowthPct: 0, totalDividendsUSD: 0 }
+    );
 
-  if (portfolioSummary.totalCostBasisUSD > 0) {
-    portfolioSummary.capitalGrowthPct = (portfolioSummary.unrealizedGainUSD / portfolioSummary.totalCostBasisUSD) * 100;
-  }
+    if (summary.totalCostBasisUSD > 0) {
+      summary.capitalGrowthPct = (summary.unrealizedGainUSD / summary.totalCostBasisUSD) * 100;
+    }
+
+    return summary;
+  }, [holdings]);
 
   // Database mutations
   const addTransaction = async (tx: Omit<Transaction, 'id'>) => {
@@ -170,6 +197,14 @@ export const StoreProvider = ({ children, user }: { children: ReactNode; user: U
     });
   };
 
+  const addEquityNote = async (note: Omit<EquityNote, 'id'>) => {
+    await addDoc(collection(db, 'equityNotes'), note);
+  };
+
+  const deleteEquityNote = async (id: string) => {
+    await deleteDoc(doc(db, 'equityNotes', id));
+  };
+
   return (
     <StoreContext.Provider
       value={{
@@ -178,6 +213,8 @@ export const StoreProvider = ({ children, user }: { children: ReactNode; user: U
         transactions,
         prices,
         fxRates,
+        exchanges,
+        equityNotes,
         watchlist,
         loading,
         holdings,
@@ -191,6 +228,8 @@ export const StoreProvider = ({ children, user }: { children: ReactNode; user: U
         updateSecurity,
         toggleWatchlist,
         addAccount,
+        addEquityNote,
+        deleteEquityNote,
       }}
     >
       {loading ? (
