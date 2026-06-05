@@ -55,36 +55,66 @@ export const StoreProvider = ({ children, user }: { children: ReactNode; user: U
   const [watchlist, setWatchlist] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
 
+  // Cache user profile metadata to ensure consistent offline path matching
+  useEffect(() => {
+    const isOffline = localStorage.getItem('harbour_auth_mode') === 'offline';
+    if (user && !isOffline) {
+      const offlineUserData = {
+        uid: user.uid,
+        email: user.email,
+        displayName: user.displayName,
+        isAnonymous: user.isAnonymous,
+        photoURL: user.photoURL
+      };
+      localStorage.setItem('harbour_offline_user', JSON.stringify(offlineUserData));
+    }
+  }, [user]);
+
   // Sync Global Collections (Securities, Prices, FX Rates, Exchanges, Notes)
   useEffect(() => {
     // 1. Sync Exchanges
     const unsubExchanges = onSnapshot(collection(db, 'exchanges'), (snap) => {
       const exs = snap.docs.map(d => ({ ...d.data(), id: d.id } as Exchange));
       setExchanges(exs);
+      if (localStorage.getItem('harbour_auth_mode') !== 'offline') {
+        localStorage.setItem('harbour_data_exchanges', JSON.stringify(exs));
+      }
     });
 
     // 2. Sync Securities
     const unsubSecurities = onSnapshot(collection(db, 'securities'), (snap) => {
       const secs = snap.docs.map(d => ({ ...d.data(), id: d.id } as Security));
       setSecurities(secs);
+      if (localStorage.getItem('harbour_auth_mode') !== 'offline') {
+        localStorage.setItem('harbour_data_securities', JSON.stringify(secs));
+      }
     });
 
     // 3. Sync Prices
     const unsubPrices = onSnapshot(collection(db, 'prices'), (snap) => {
       const pxs = snap.docs.map(d => ({ ...d.data(), id: d.id } as PriceUpdate));
       setPrices(pxs);
+      if (localStorage.getItem('harbour_auth_mode') !== 'offline') {
+        localStorage.setItem('harbour_data_prices', JSON.stringify(pxs));
+      }
     });
 
     // 4. Sync FX Rates
     const unsubFX = onSnapshot(collection(db, 'fxRates'), (snap) => {
       const fxs = snap.docs.map(d => ({ ...d.data(), id: d.id } as FXRate));
       setFXRates(fxs);
+      if (localStorage.getItem('harbour_auth_mode') !== 'offline') {
+        localStorage.setItem('harbour_data_fxRates', JSON.stringify(fxs));
+      }
     });
 
     // 5. Sync Equity Notes
     const unsubNotes = onSnapshot(collection(db, 'equityNotes'), (snap) => {
       const nts = snap.docs.map(d => ({ ...d.data(), id: d.id } as EquityNote));
       setEquityNotes(nts);
+      if (localStorage.getItem('harbour_auth_mode') !== 'offline') {
+        localStorage.setItem('harbour_data_equityNotes', JSON.stringify(nts));
+      }
     });
 
     return () => {
@@ -104,20 +134,26 @@ export const StoreProvider = ({ children, user }: { children: ReactNode; user: U
     const unsubAccounts = onSnapshot(collection(db, 'users', user.uid, 'accounts'), (snap) => {
       const accs = snap.docs.map(d => ({ ...d.data(), id: d.id } as Account));
       setAccounts(accs);
+      if (localStorage.getItem('harbour_auth_mode') !== 'offline') {
+        localStorage.setItem(`harbour_data_users_${user.uid}_accounts`, JSON.stringify(accs));
+      }
     });
 
     // Sync User Transactions
     const unsubTransactions = onSnapshot(collection(db, 'users', user.uid, 'transactions'), (snap) => {
       const txs = snap.docs.map(d => ({ ...d.data(), id: d.id } as Transaction));
       setTransactions(txs);
+      if (localStorage.getItem('harbour_auth_mode') !== 'offline') {
+        localStorage.setItem(`harbour_data_users_${user.uid}_transactions`, JSON.stringify(txs));
+      }
     });
 
     // Sync User Watchlist
     const unsubWatchlist = onSnapshot(doc(db, 'users', user.uid, 'watchlist', 'default'), (docSnap) => {
-      if (docSnap.exists()) {
-        setWatchlist(docSnap.data().securityIds || []);
-      } else {
-        setWatchlist([]);
+      const securityIds = docSnap.exists() ? (docSnap.data().securityIds || []) : [];
+      setWatchlist(securityIds);
+      if (localStorage.getItem('harbour_auth_mode') !== 'offline') {
+        localStorage.setItem(`harbour_data_users_${user.uid}_watchlist_default`, JSON.stringify({ securityIds }));
       }
       setLoading(false);
     }, () => {

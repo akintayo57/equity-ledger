@@ -51,6 +51,15 @@ export const isOfflineMode = () => {
   return localStorage.getItem('harbour_auth_mode') === 'offline';
 };
 
+// Check if mock seeding is desired (defaults to true in local development, false in production)
+export const shouldUseMockData = () => {
+  const forced = localStorage.getItem('harbour_force_mock_data');
+  if (forced !== null) {
+    return forced === 'true';
+  }
+  return import.meta.env.VITE_APP_ENV === 'local' || import.meta.env.MODE === 'test';
+};
+
 // Initial offline user state
 let offlineUser: any = null;
 if (isOfflineMode()) {
@@ -58,13 +67,21 @@ if (isOfflineMode()) {
   if (saved) {
     offlineUser = JSON.parse(saved);
   } else {
-    offlineUser = {
-      uid: 'guest-developer-uid',
-      email: 'guest@harbour.finance',
-      displayName: 'Guest Developer',
-      isAnonymous: true,
-      photoURL: null
-    };
+    offlineUser = shouldUseMockData()
+      ? {
+          uid: 'guest-developer-uid',
+          email: 'guest@harbour.finance',
+          displayName: 'Guest Developer',
+          isAnonymous: true,
+          photoURL: null
+        }
+      : {
+          uid: 'offline-anonymous-uid',
+          email: 'offline@harbour.finance',
+          displayName: 'Offline User',
+          isAnonymous: true,
+          photoURL: null
+        };
     localStorage.setItem('harbour_offline_user', JSON.stringify(offlineUser));
   }
 }
@@ -73,14 +90,27 @@ if (isOfflineMode()) {
 export const onAuthStateChanged = (authInstance: any, callback: (user: any) => void) => {
   if (isOfflineMode()) {
     if (!offlineUser) {
-      offlineUser = {
-        uid: 'guest-developer-uid',
-        email: 'guest@harbour.finance',
-        displayName: 'Guest Developer',
-        isAnonymous: true,
-        photoURL: null
-      };
-      localStorage.setItem('harbour_offline_user', JSON.stringify(offlineUser));
+      const saved = localStorage.getItem('harbour_offline_user');
+      if (saved) {
+        offlineUser = JSON.parse(saved);
+      } else {
+        offlineUser = shouldUseMockData()
+          ? {
+              uid: 'guest-developer-uid',
+              email: 'guest@harbour.finance',
+              displayName: 'Guest Developer',
+              isAnonymous: true,
+              photoURL: null
+            }
+          : {
+              uid: 'offline-anonymous-uid',
+              email: 'offline@harbour.finance',
+              displayName: 'Offline User',
+              isAnonymous: true,
+              photoURL: null
+            };
+        localStorage.setItem('harbour_offline_user', JSON.stringify(offlineUser));
+      }
     }
     setTimeout(() => callback(offlineUser), 0);
     authListeners.add(callback);
@@ -102,13 +132,27 @@ export const signInAnonymously = async (authInstance: any) => {
   } catch (err: any) {
     console.warn("Real Firebase sign-in failed, switching to local offline storage:", err);
     localStorage.setItem('harbour_auth_mode', 'offline');
-    const mockUser = {
-      uid: 'guest-developer-uid',
-      email: 'guest@harbour.finance',
-      displayName: 'Guest Developer',
-      isAnonymous: true,
-      photoURL: null
-    };
+    
+    // Resolve user to either last logged-in cached user, or a fallback offline user
+    const saved = localStorage.getItem('harbour_offline_user');
+    const mockUser = saved ? JSON.parse(saved) : (
+      shouldUseMockData()
+        ? {
+            uid: 'guest-developer-uid',
+            email: 'guest@harbour.finance',
+            displayName: 'Guest Developer',
+            isAnonymous: true,
+            photoURL: null
+          }
+        : {
+            uid: 'offline-anonymous-uid',
+            email: 'offline@harbour.finance',
+            displayName: 'Offline User',
+            isAnonymous: true,
+            photoURL: null
+          }
+    );
+    
     localStorage.setItem('harbour_offline_user', JSON.stringify(mockUser));
     offlineUser = mockUser;
     
@@ -158,7 +202,21 @@ const getMockCollection = (collectionPath: string): any[] => {
     return JSON.parse(dataStr);
   }
   
-  // Seed default data if empty
+  // If not using mock data (production fallback mode), return empty collections
+  if (!shouldUseMockData()) {
+    // Return standard exchanges list so UI can identify the trading regions
+    if (collectionPath === 'exchanges') {
+      return [
+        { id: 'GASCI', name: 'Guyana Stock Exchange', country: 'Guyana', currency: 'GYD' },
+        { id: 'BSE', name: 'Barbados Stock Exchange', country: 'Barbados', currency: 'BBD' },
+        { id: 'TTSE', name: 'Trinidad & Tobago Stock Exchange', country: 'Trinidad & Tobago', currency: 'TTD' },
+        { id: 'JSE', name: 'Jamaica Stock Exchange', country: 'Jamaica', currency: 'JMD' }
+      ];
+    }
+    return [];
+  }
+  
+  // Seed default data if empty (Local Dev Mode)
   let initialData: any[] = [];
   if (collectionPath === 'exchanges') {
     initialData = [
@@ -244,7 +302,9 @@ const getMockDoc = (docPath: string): any => {
     return JSON.parse(dataStr);
   }
   if (docPath.endsWith('/watchlist/default')) {
-    const defaultWatchlist = { securityIds: ['sec-1', 'sec-3', 'sec-6'] };
+    const defaultWatchlist = shouldUseMockData()
+      ? { securityIds: ['sec-1', 'sec-3', 'sec-6'] }
+      : { securityIds: [] };
     localStorage.setItem(key, JSON.stringify(defaultWatchlist));
     return defaultWatchlist;
   }

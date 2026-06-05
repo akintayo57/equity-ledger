@@ -130,4 +130,34 @@ describe('offline mock database tests', () => {
 
     unsub();
   });
+
+  it('should seed mock data in local dev mode when empty', async () => {
+    localStorage.clear();
+    localStorage.setItem('harbour_auth_mode', 'offline');
+    localStorage.setItem('harbour_force_mock_data', 'true');
+    
+    const colRef = collection(null as any, 'securities');
+    let data: any[] = [];
+    onSnapshot(colRef, (snap) => {
+      data = snap.docs.map((d: any) => d.data());
+    });
+    
+    await new Promise(resolve => setTimeout(resolve, 10));
+    expect(data.length).toBeGreaterThan(0);
+  });
+
+  it('should not seed mock data in production offline mode when empty', async () => {
+    localStorage.clear();
+    localStorage.setItem('harbour_auth_mode', 'offline');
+    localStorage.setItem('harbour_force_mock_data', 'false');
+    
+    const colRef = collection(null as any, 'securities');
+    let data: any[] = [];
+    onSnapshot(colRef, (snap) => {
+      data = snap.docs.map((d: any) => d.data());
+    });
+    
+    await new Promise(resolve => setTimeout(resolve, 10));
+    expect(data.length).toBe(0);
+  });
 });
