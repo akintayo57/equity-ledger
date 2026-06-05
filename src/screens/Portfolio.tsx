@@ -2,13 +2,12 @@ import { useState, useEffect } from 'react';
 import { useLocation } from 'react-router-dom';
 import { Dashboard } from './Dashboard';
 import { WatchlistTab } from './Holdings';
-import { Performance } from './Performance';
-import { LayoutDashboard, Eye, Briefcase } from 'lucide-react';
+import { LayoutDashboard, Eye } from 'lucide-react';
 
 export const Portfolio = () => {
   const location = useLocation();
-  const locationState = location.state as { activeTab?: 'SUMMARY' | 'WATCHLIST' | 'PERFORMANCE' } | null;
-  const [activeSubTab, setActiveSubTab] = useState<'SUMMARY' | 'WATCHLIST' | 'PERFORMANCE'>('SUMMARY');
+  const locationState = location.state as { activeTab?: 'SUMMARY' | 'WATCHLIST' } | null;
+  const [activeSubTab, setActiveSubTab] = useState<'SUMMARY' | 'WATCHLIST'>('SUMMARY');
 
   // Handle incoming navigation redirects (e.g. from Detail screens back to specific sub-tabs)
   useEffect(() => {
@@ -22,7 +21,6 @@ export const Portfolio = () => {
   const subTabs = [
     { id: 'SUMMARY' as const, name: 'Summary', icon: LayoutDashboard },
     { id: 'WATCHLIST' as const, name: 'Watchlist', icon: Eye },
-    { id: 'PERFORMANCE' as const, name: 'Performance', icon: Briefcase },
   ];
 
   return (
@@ -53,7 +51,6 @@ export const Portfolio = () => {
       <div className="transition-all duration-300">
         {activeSubTab === 'SUMMARY' && <Dashboard />}
         {activeSubTab === 'WATCHLIST' && <WatchlistTab />}
-        {activeSubTab === 'PERFORMANCE' && <Performance />}
       </div>
     </div>
   );
