@@ -28,11 +28,16 @@ export const Markets = () => {
   const searchResults = useMemo(() => {
     if (!searchQuery.trim()) return [];
     const query = searchQuery.toLowerCase().trim();
-    return securities.filter(s => 
-      s.companyName.toLowerCase().includes(query) ||
-      s.ticker.toLowerCase().includes(query) ||
-      s.exchangeId.toLowerCase().includes(query)
-    );
+    return securities.filter(s => {
+      const companyName = s.companyName || '';
+      const ticker = s.ticker || '';
+      const exchangeId = s.exchangeId || '';
+      return (
+        companyName.toLowerCase().includes(query) ||
+        ticker.toLowerCase().includes(query) ||
+        exchangeId.toLowerCase().includes(query)
+      );
+    });
   }, [securities, searchQuery]);
 
   // Selected security stats
