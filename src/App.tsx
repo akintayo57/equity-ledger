@@ -66,8 +66,8 @@ export default function App() {
       <HashRouter>
         <Routes>
           <Route path="/" element={<Layout user={user} />}>
-            <Route index element={<Portfolio />} />
-            <Route path="markets" element={<Markets />} />
+            <Route index element={<Markets />} />
+            <Route path="portfolio" element={<Portfolio />} />
             <Route path="holdings/:id" element={<HoldingDetail />} />
             <Route path="settings" element={<DataSettings />} />
           </Route>

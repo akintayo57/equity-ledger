@@ -68,6 +68,8 @@ describe('Markets screen tests', () => {
     expect(screen.getByText('GASCI Index')).toBeInTheDocument();
     expect(screen.getByText('BSE Index')).toBeInTheDocument();
     expect(screen.getByText('Relevant Corporate News')).toBeInTheDocument();
+    expect(screen.getByText('Top Gainers')).toBeInTheDocument();
+    expect(screen.getByText('Top Losers')).toBeInTheDocument();
 
     const bseFilter = screen.getByRole('button', { name: 'BSE' });
     await act(async () => {

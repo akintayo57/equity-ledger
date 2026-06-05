@@ -70,7 +70,29 @@ export const Markets = () => {
     };
   }, [securities, prices]);
 
-  // Market Movers calculations for all listed stocks
+  // Find the latest price date for each exchange
+  const latestDateByExchange = useMemo(() => {
+    const dates: Record<string, string> = {};
+    
+    // Create a fast lookup map for security exchange IDs
+    const secExchangeMap = new Map<string, string>();
+    securities.forEach(s => {
+      secExchangeMap.set(s.id, s.exchangeId);
+    });
+
+    prices.forEach(p => {
+      const exchangeId = secExchangeMap.get(p.securityId);
+      if (exchangeId) {
+        if (!dates[exchangeId] || p.date.localeCompare(dates[exchangeId]) > 0) {
+          dates[exchangeId] = p.date;
+        }
+      }
+    });
+
+    return dates;
+  }, [securities, prices]);
+
+  // Market Movers calculations for all listed stocks (strictly based on the latest session date of their exchange)
   const allMovers = useMemo(() => {
     const pricesBySec = new Map<string, typeof prices>();
     prices.forEach(p => {
@@ -89,13 +111,16 @@ export const Markets = () => {
       let change = 0;
       let changePct = 0;
 
-      if (sortedPrices.length >= 2) {
+      const latestExchangeSessionDate = latestDateByExchange[sec.exchangeId];
+
+      // Only calculate movers if the stock has a price update on the latest session date for its exchange
+      if (sortedPrices.length > 0 && latestExchangeSessionDate && sortedPrices[0].date === latestExchangeSessionDate) {
         currentPrice = sortedPrices[0].price;
-        prevPrice = sortedPrices[1].price;
-        change = currentPrice - prevPrice;
-        changePct = prevPrice > 0 ? (change / prevPrice) * 100 : 0;
-      } else if (sortedPrices.length === 1) {
-        currentPrice = sortedPrices[0].price;
+        if (sortedPrices.length >= 2) {
+          prevPrice = sortedPrices[1].price;
+          change = currentPrice - prevPrice;
+          changePct = prevPrice > 0 ? (change / prevPrice) * 100 : 0;
+        }
       }
 
       return {
@@ -106,7 +131,7 @@ export const Markets = () => {
         changePct,
       };
     }).filter(mover => mover.currentPrice > 0);
-  }, [securities, prices]);
+  }, [securities, prices, latestDateByExchange]);
 
   // Filter movers by exchange
   const filteredMovers = useMemo(() => {
@@ -119,12 +144,14 @@ export const Markets = () => {
   // Sort and slice top 5 gainers and losers
   const marketGainers = useMemo(() => {
     return [...filteredMovers]
+      .filter(m => m.changePct > 0)
       .sort((a, b) => b.changePct - a.changePct)
       .slice(0, 5);
   }, [filteredMovers]);
 
   const marketLosers = useMemo(() => {
     return [...filteredMovers]
+      .filter(m => m.changePct < 0)
       .sort((a, b) => a.changePct - b.changePct)
       .slice(0, 5);
   }, [filteredMovers]);

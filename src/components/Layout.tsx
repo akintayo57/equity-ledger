@@ -12,8 +12,8 @@ export function cn(...inputs: ClassValue[]) {
 }
 
 const navItems = [
-  { name: 'Markets', path: '/markets', icon: TrendingUp },
-  { name: 'Portfolio', path: '/', icon: Wallet },
+  { name: 'Markets', path: '/', icon: TrendingUp },
+  { name: 'Portfolio', path: '/portfolio', icon: Wallet },
   { name: 'Settings', path: '/settings', icon: Settings },
 ];
 
