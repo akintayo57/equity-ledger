@@ -19,6 +19,16 @@ service cloud.firestore {
       allow create: if request.auth != null;
     }
     
+    match /exchanges/{exchangeId} {
+      allow read: if request.auth != null;
+      allow create, update, delete: if request.auth != null;
+    }
+    
+    match /equityNotes/{noteId} {
+      allow read: if request.auth != null;
+      allow create, update, delete: if request.auth != null;
+    }
+    
     // User-specific collections are strictly locked to their owner.
     match /users/{userId} {
       allow read, write: if request.auth != null && request.auth.uid == userId;
