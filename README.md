@@ -66,8 +66,14 @@ npm install
 
 #### Run Local Workstation (Firestore Emulator Mode):
 To run the app isolated from production, pointing to the local Firestore and Auth emulators:
-1. Start the Firebase emulators:
+1. Start the Firebase emulators (Requires Java Runtime environment):
    ```bash
+   npm run emulators
+   ```
+   *Note: If macOS is unable to locate a Java Runtime, export your Homebrew OpenJDK path before starting:*
+   ```bash
+   export JAVA_HOME=/opt/homebrew/opt/openjdk
+   export PATH=$JAVA_HOME/bin:$PATH
    npm run emulators
    ```
 2. Start the Vite development server in workstation mode (loads `.env.workstation`):
@@ -143,16 +149,36 @@ python3 -m bse_collector.cli list-sessions
 
 ## 3. Database Seeding & Data Backfill
 
-To upload raw CSV data to Firestore, a Node TypeScript utility is executed.
+To upload raw CSV data to Firestore, execute the Node TypeScript seeding utilities:
 
-1. Relax Firestore write rules in `firestore.rules`.
-2. Execute the seeding script (e.g., `npx tsx scratch/import_range_prices.ts`):
-   * **Seeding Local Emulator:**
-     ```bash
-     npx tsx scratch/import_range_prices.ts --local
-     ```
-   * **Seeding Cloud Dev:**
-     ```bash
-     npx tsx scratch/import_range_prices.ts --cloud
-     ```
-3. Restore secure write rules to `firestore.rules` and redeploy.
+*   **Seeding the Local Emulator from scratch**:
+    Ensures standard exchanges, BSE/GASCI securities, and pricing updates are loaded into the local emulator instance:
+    ```bash
+    npx tsx scratch/seed_local_firestore.ts
+    ```
+*   **Importing BSE dataset specifically**:
+    Import the parsed BSE sessions and securities into either local emulator or cloud dev project:
+    ```bash
+    # Seeding Local Emulator
+    npx tsx scratch/import_bse_prices.ts --local
+
+    # Seeding Cloud Dev project
+    npx tsx scratch/import_bse_prices.ts --cloud
+    ```
+
+---
+
+## 4. Unit Testing & Code Coverage
+
+To verify screen rendering, React Context mutations, local storage fallbacks, and mathematical utilities:
+
+```bash
+# Run all tests once
+npm run test:run
+
+# Run tests in interactive watch mode
+npm run test
+
+# Run tests and generate code coverage report
+npm run test:coverage
+```
