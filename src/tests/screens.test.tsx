@@ -133,7 +133,9 @@ describe('Portfolio tab switcher tests', () => {
     expect(screen.getByText('Summary')).toBeInTheDocument();
     expect(screen.getByText('Watchlist')).toBeInTheDocument();
     expect(screen.getByText('Performance')).toBeInTheDocument();
-    expect(screen.getByText('Transactions')).toBeInTheDocument();
+
+    // Verify Transactions widget renders on Summary tab
+    expect(screen.getByText('Transaction Ledger Widget')).toBeInTheDocument();
 
     // Click Watchlist tab
     const watchlistTab = screen.getByText('Watchlist');
@@ -148,13 +150,6 @@ describe('Portfolio tab switcher tests', () => {
       fireEvent.click(performanceTab);
     });
     expect(screen.getByText('Overall Return')).toBeInTheDocument();
-
-    // Click Transactions tab
-    const transactionsTab = screen.getByText('Transactions');
-    await act(async () => {
-      fireEvent.click(transactionsTab);
-    });
-    expect(screen.getByText(/Transaction Ledger/i)).toBeInTheDocument();
   });
 });
 

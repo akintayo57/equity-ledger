@@ -118,11 +118,11 @@ export const HoldingsList = () => {
                           >
                             <Heart className={`w-3.5 h-3.5 ${isWatched ? 'fill-rose-500 text-rose-500' : ''}`} />
                           </button>
-                          <button
-                            onClick={() => navigate('/', { state: { activeTab: 'TRANSACTIONS', securityId: h.security.id } })}
-                            className="p-1.5 hover:bg-slate-100 rounded-lg text-slate-400 hover:text-blue-600 transition-colors cursor-pointer"
-                            title="Add Transaction"
-                          >
+                           <button
+                             onClick={() => navigate('/portfolio', { state: { activeTab: 'SUMMARY', showAdd: true, securityId: h.security.id } })}
+                             className="p-1.5 hover:bg-slate-100 rounded-lg text-slate-400 hover:text-blue-600 transition-colors cursor-pointer"
+                             title="Add Transaction"
+                           >
                             <Plus className="w-3.5 h-3.5" />
                           </button>
                         </div>
@@ -180,7 +180,7 @@ export const HoldingsList = () => {
                             <Heart className={`w-3.5 h-3.5 ${isWatched ? 'fill-rose-500 text-rose-500' : ''}`} />
                           </button>
                           <button
-                            onClick={() => navigate('/', { state: { activeTab: 'TRANSACTIONS', securityId: s.id } })}
+                            onClick={() => navigate('/portfolio', { state: { activeTab: 'SUMMARY', showAdd: true, securityId: s.id } })}
                             className="p-1.5 hover:bg-slate-100 rounded-lg text-slate-400 hover:text-blue-600 transition-colors cursor-pointer"
                             title="Add Transaction"
                           >
@@ -376,7 +376,7 @@ export const WatchlistTab = () => {
                             <Heart className="w-3.5 h-3.5 fill-rose-500 text-rose-500" />
                           </button>
                           <button
-                            onClick={() => navigate('/', { state: { activeTab: 'TRANSACTIONS', securityId: s.id } })}
+                            onClick={() => navigate('/portfolio', { state: { activeTab: 'SUMMARY', showAdd: true, securityId: s.id } })}
                             className="p-1.5 hover:bg-slate-100 rounded-lg text-slate-400 hover:text-blue-600 transition-colors cursor-pointer"
                             title="Add Transaction"
                           >
@@ -430,7 +430,7 @@ export const WatchlistTab = () => {
                             <Heart className="w-3.5 h-3.5 text-slate-400" />
                           </button>
                           <button
-                            onClick={() => navigate('/', { state: { activeTab: 'TRANSACTIONS', securityId: s.id } })}
+                            onClick={() => navigate('/portfolio', { state: { activeTab: 'SUMMARY', showAdd: true, securityId: s.id } })}
                             className="p-1.5 hover:bg-slate-100 rounded-lg text-slate-400 hover:text-blue-600 transition-colors cursor-pointer"
                             title="Add Transaction"
                           >

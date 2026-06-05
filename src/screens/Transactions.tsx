@@ -52,23 +52,22 @@ export const Transactions = () => {
   if (!showFullLayout) {
     return (
       <div className="py-2">
-        <div onClick={() => setShowFullLayout(true)} className="cursor-pointer">
-          <Card className="bg-slate-50 border border-slate-200/70 shadow-xs hover:shadow-md hover:border-slate-350 transition-all duration-300">
-            <CardContent className="p-6 flex flex-col items-center text-center space-y-4">
-              <div className="p-4 bg-blue-50 text-blue-600 rounded-2xl shadow-xs">
-                <ArrowLeftRight className="w-8 h-8 text-blue-600 animate-pulse" />
-              </div>
-              <div>
-                <h3 className="font-extrabold text-slate-800 text-base">Transaction Ledger Widget</h3>
-                <p className="text-xs text-slate-500 mt-1 max-w-[280px]">
-                  Manage buys, sales, splits, and dividend records. Contains {transactions.length} total entries.
-                </p>
-              </div>
-              <button className="text-xs font-bold text-white bg-blue-600 px-5 py-2.5 rounded-xl hover:bg-blue-700 shadow-md shadow-blue-500/10 active:scale-98 transition-all shrink-0 cursor-pointer">
-                Open Ledger History
-              </button>
-            </CardContent>
-          </Card>
+        <div 
+          onClick={() => setShowFullLayout(true)} 
+          className="cursor-pointer bg-slate-50/50 border border-slate-200/50 hover:border-slate-300 rounded-2xl shadow-xs hover:shadow-md transition-all duration-300 p-6 flex flex-col items-center text-center space-y-4"
+        >
+          <div className="p-4 bg-blue-50 text-blue-600 rounded-2xl shadow-xs">
+            <ArrowLeftRight className="w-8 h-8 text-blue-600 animate-pulse" />
+          </div>
+          <div>
+            <h3 className="font-extrabold text-slate-800 text-base">Transaction Ledger Widget</h3>
+            <p className="text-xs text-slate-500 mt-1 max-w-[280px]">
+              Manage buys, sales, splits, and dividend records. Contains {transactions.length} total entries.
+            </p>
+          </div>
+          <button className="text-xs font-bold text-white bg-blue-600 px-5 py-2.5 rounded-xl hover:bg-blue-700 shadow-md shadow-blue-500/10 active:scale-98 transition-all shrink-0 cursor-pointer">
+            Open Ledger History
+          </button>
         </div>
       </div>
     );

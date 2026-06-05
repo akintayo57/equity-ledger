@@ -4,6 +4,8 @@ import { formatMoney, formatPercentage } from '../utils';
 import { AlertCircle, ArrowUpRight, ArrowDownRight, Award } from 'lucide-react';
 import { useMemo } from 'react';
 import { Link } from 'react-router-dom';
+import { Transactions } from './Transactions';
+
 
 export const Dashboard = () => {
   const { 
@@ -133,12 +135,21 @@ export const Dashboard = () => {
             ))}
             {holdings.length === 0 && (
               <div className="text-slate-400 text-xs py-4 text-center border border-dashed border-slate-200 rounded-xl bg-slate-50/50">
-                No active holdings in portfolio. Log purchases under the Transactions tab to construct your ledger.
+                No active holdings in portfolio. Log purchases in the Transactions section below to construct your ledger.
               </div>
             )}
           </div>
         </CardContent>
       </Card>
+
+      {/* Transactions Panel */}
+      <Card>
+        <CardContent className="p-5">
+          <div className="font-bold text-xs uppercase tracking-widest text-slate-850 mb-4 border-b border-slate-100 pb-2">Transactions</div>
+          <Transactions />
+        </CardContent>
+      </Card>
+
 
       {/* Allocation */}
       {holdings.length > 0 && (
