@@ -74,7 +74,15 @@ export const StoreProvider = ({ children, user }: { children: ReactNode; user: U
   useEffect(() => {
     // 1. Sync Exchanges
     const unsubExchanges = onSnapshot(collection(db, 'exchanges'), (snap) => {
-      const exs = snap.docs.map(d => ({ ...d.data(), id: d.id } as Exchange));
+      let exs = snap.docs.map(d => ({ ...d.data(), id: d.id } as Exchange));
+      if (exs.length === 0) {
+        exs = [
+          { id: 'GASCI', name: 'Guyana Stock Exchange', country: 'Guyana', currency: 'GYD' },
+          { id: 'BSE', name: 'Barbados Stock Exchange', country: 'Barbados', currency: 'BBD' },
+          { id: 'TTSE', name: 'Trinidad & Tobago Stock Exchange', country: 'Trinidad & Tobago', currency: 'TTD' },
+          { id: 'JSE', name: 'Jamaica Stock Exchange', country: 'Jamaica', currency: 'JMD' }
+        ];
+      }
       setExchanges(exs);
       if (localStorage.getItem('harbour_auth_mode') !== 'offline') {
         localStorage.setItem('harbour_data_exchanges', JSON.stringify(exs));
@@ -83,7 +91,14 @@ export const StoreProvider = ({ children, user }: { children: ReactNode; user: U
 
     // 2. Sync Securities
     const unsubSecurities = onSnapshot(collection(db, 'securities'), (snap) => {
-      const secs = snap.docs.map(d => ({ ...d.data(), id: d.id } as Security));
+      const secs = snap.docs.map(d => {
+        const data = d.data();
+        return {
+          ...data,
+          id: d.id,
+          exchangeId: data.exchangeId || data.exchange || 'GASCI'
+        } as Security;
+      });
       setSecurities(secs);
       if (localStorage.getItem('harbour_auth_mode') !== 'offline') {
         localStorage.setItem('harbour_data_securities', JSON.stringify(secs));
