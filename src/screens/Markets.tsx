@@ -1,7 +1,7 @@
 import { useStore } from '../store';
 import { Card, CardContent, Badge } from '../components/ui/Cards';
 import { formatMoney, formatPercentage } from '../utils';
-import { Star, TrendingUp, Newspaper, HelpCircle, ArrowUpRight, ArrowDownRight, Search, X, ArrowLeft, Info } from 'lucide-react';
+import { Star, TrendingUp, Newspaper, HelpCircle, ArrowUpRight, ArrowDownRight, Search, X, ArrowLeft, Info, Heart } from 'lucide-react';
 import { useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
@@ -363,6 +363,13 @@ export const Markets = () => {
                     </div>
                   )}
                 </div>
+                <button
+                  onClick={() => toggleWatchlist(selectedSecurity.id)}
+                  className={`p-1.5 hover:bg-slate-100 rounded-lg transition-colors cursor-pointer ${watchlist.includes(selectedSecurity.id) ? 'text-rose-500' : 'text-slate-400 hover:text-rose-500'}`}
+                  title={watchlist.includes(selectedSecurity.id) ? "Remove from Watchlist" : "Add to Watchlist"}
+                >
+                  <Heart className={`w-4 h-4 ${watchlist.includes(selectedSecurity.id) ? 'fill-rose-500 text-rose-500' : ''}`} />
+                </button>
                 <button
                   onClick={() => setSelectedSecurity(null)}
                   className="p-1.5 hover:bg-slate-100 rounded-full transition-colors cursor-pointer text-slate-400 hover:text-slate-650"

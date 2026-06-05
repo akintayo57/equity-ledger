@@ -191,6 +191,37 @@ describe('HoldingDetail screen tests', () => {
     // Form inputs should be visible
     expect(screen.getByText('Write Research Synopsis')).toBeInTheDocument();
   });
+
+  it('should render HoldingDetail from watchlist with only Card 2 and watchlist toggle', async () => {
+    render(
+      <MemoryRouter 
+        initialEntries={[
+          { pathname: '/holdings/sec-1', state: { fromWatchlist: true } }
+        ]}
+      >
+        <StoreProvider user={mockUser}>
+          <Routes>
+            <Route path="/holdings/:id" element={<HoldingDetail />} />
+          </Routes>
+        </StoreProvider>
+      </MemoryRouter>
+    );
+
+    // sec-1 is GBTI (Guyana Bank for Trade and Industry Limited)
+    const titleEls = await screen.findAllByText(/Guyana Bank for Trade and Industry/i);
+    expect(titleEls[0]).toBeInTheDocument();
+    
+    // Card 2 should be in the document
+    expect(screen.getByText('Market Profile & Fundamentals')).toBeInTheDocument();
+    
+    // Card 1 (portfolio holdings details like average cost, cost basis) should NOT be in the document
+    expect(screen.queryByText(/Market Value \(USD\)/i)).not.toBeInTheDocument();
+    expect(screen.queryByText(/Cost Basis \(USD\)/i)).not.toBeInTheDocument();
+    
+    // Check that Heart button is present inside Card 2
+    const watchlistBtns = screen.getAllByTitle(/(Add to Watchlist|Remove from Watchlist)/i);
+    expect(watchlistBtns.length).toBeGreaterThan(1); // One in top header, one in Card 2
+  });
 });
 
 describe('DataSettings screen tests', () => {

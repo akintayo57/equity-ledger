@@ -351,7 +351,7 @@ export const WatchlistTab = () => {
 
           if (item.type === 'watchlisted') {
             return (
-              <Link to={`/holdings/${s.id}`} key={s.id} className="block">
+              <Link to={`/holdings/${s.id}`} state={{ fromWatchlist: true }} key={s.id} className="block">
                 <Card className="hover:border-blue-300 transition-colors">
                   <CardContent className="p-4">
                     <div className="flex justify-between items-start mb-2">
@@ -402,7 +402,7 @@ export const WatchlistTab = () => {
           } else {
             // Market Item (Add to Watchlist Search Results)
             return (
-              <Link to={`/holdings/${s.id}`} key={s.id} className="block">
+              <Link to={`/holdings/${s.id}`} state={{ fromWatchlist: true }} key={s.id} className="block">
                 <Card className="hover:border-blue-300 border-dashed transition-colors">
                   <CardContent className="p-4">
                     <div className="flex justify-between items-start mb-2">

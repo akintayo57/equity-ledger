@@ -1,21 +1,27 @@
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { useStore } from '../store';
 import { Card, CardHeader, CardContent, StatBox, Badge } from '../components/ui/Cards';
 import { formatMoney, formatPercentage } from '../utils';
-import { ArrowLeft, Clock, AlertTriangle, Eye, EyeOff, BookOpen, UserPlus, Info, Newspaper, PlusCircle, ChevronDown, ChevronUp } from 'lucide-react';
+import { ArrowLeft, Clock, AlertTriangle, Eye, EyeOff, BookOpen, UserPlus, Info, Newspaper, PlusCircle, ChevronDown, ChevronUp, Heart } from 'lucide-react';
 import { format, subDays } from 'date-fns';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import React, { useMemo, useState } from 'react';
 
+
 export const HoldingDetail = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const location = useLocation();
   const { holdings, transactions, securities, prices, exchanges, watchlist, equityNotes, toggleWatchlist, addEquityNote } = useStore();
 
   const [activeTab, setActiveTab] = useState<'OVERVIEW' | 'RESEARCH'>('OVERVIEW');
 
-  const holding = holdings.find((h) => h.security.id === id);
+  const locationState = location.state as { fromWatchlist?: boolean } | null;
+  const fromWatchlist = !!locationState?.fromWatchlist;
+
+  const holding = fromWatchlist ? undefined : holdings.find((h) => h.security.id === id);
   const security = holding?.security || securities.find(s => s.id === id);
+
 
   // Form states for new note
   const [noteTitle, setNoteTitle] = useState('');
@@ -176,6 +182,7 @@ export const HoldingDetail = () => {
         <button 
           onClick={() => toggleWatchlist(security.id)} 
           className={`p-2 rounded-full border shadow-sm transition-colors cursor-pointer ${isWatched ? 'bg-blue-50 border-blue-200 text-blue-600' : 'bg-white border-slate-200 text-slate-600'}`}
+          title={isWatched ? "Remove from Watchlist" : "Add to Watchlist"}
         >
           {isWatched ? <Eye className="w-4 h-4" /> : <EyeOff className="w-4 h-4" />}
         </button>
@@ -319,9 +326,9 @@ export const HoldingDetail = () => {
 
           {/* Card 2: Market Profile & Fundamentals (Collapsible Widget) */}
           <Card className="overflow-hidden border border-slate-200">
-            <button
+            <div
               onClick={() => setIsMarketExpanded(prev => !prev)}
-              className="w-full p-4 flex justify-between items-center bg-white hover:bg-slate-50/40 transition-colors text-left focus:outline-none cursor-pointer"
+              className="w-full p-4 flex justify-between items-center bg-white hover:bg-slate-50/40 transition-colors text-left cursor-pointer"
             >
               <div>
                 <span className="font-bold text-sm text-slate-900">Market Profile & Fundamentals</span>
@@ -338,13 +345,24 @@ export const HoldingDetail = () => {
                     </div>
                   )}
                 </div>
+                <button
+                  onClick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    toggleWatchlist(security.id);
+                  }}
+                  className={`p-1.5 hover:bg-slate-100 rounded-lg transition-colors cursor-pointer ${isWatched ? 'text-rose-500' : 'text-slate-400 hover:text-rose-500'}`}
+                  title={isWatched ? "Remove from Watchlist" : "Add to Watchlist"}
+                >
+                  <Heart className={`w-4 h-4 ${isWatched ? 'fill-rose-500 text-rose-500' : ''}`} />
+                </button>
                 {isMarketExpanded ? (
                   <ChevronUp className="w-5 h-5 text-slate-500" />
                 ) : (
                   <ChevronDown className="w-5 h-5 text-slate-500" />
                 )}
               </div>
-            </button>
+            </div>
 
             {isMarketExpanded && (
               <div className="border-t border-slate-100 bg-white">
