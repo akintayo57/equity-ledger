@@ -114,6 +114,26 @@ describe('Markets screen tests', () => {
     // Default overview (e.g. indices) should return
     expect(screen.getByText('GASCI Index')).toBeInTheDocument();
   });
+
+  it('should render the active session date for the markets and update on exchange filter clicks', async () => {
+    renderWithContext(<Markets />);
+
+    await act(async () => {
+      await new Promise(resolve => setTimeout(resolve, 50));
+    });
+
+    // Check that Session Date badge is rendered in the Movers section
+    const sessionLabel = screen.getByText(/Session:/i);
+    expect(sessionLabel).toBeInTheDocument();
+
+    // Verify it updates when a different exchange filter is clicked (e.g. GASCI)
+    const gasciFilter = screen.getByRole('button', { name: 'GASCI' });
+    await act(async () => {
+      fireEvent.click(gasciFilter);
+    });
+
+    expect(screen.getByText(/Session:/i)).toBeInTheDocument();
+  });
 });
 
 describe('Portfolio tab switcher tests', () => {

@@ -207,6 +207,13 @@ export const Markets = () => {
     return dates;
   }, [securities, prices]);
 
+  // Find the global latest price date across all exchanges
+  const globalLatestDate = useMemo(() => {
+    const dates = Object.values(latestDateByExchange);
+    if (dates.length === 0) return null;
+    return dates.reduce((latest, current) => current > latest ? current : latest, dates[0]);
+  }, [latestDateByExchange]);
+
   // Market Movers calculations for all listed stocks (strictly based on the latest session date of their exchange)
   const allMovers = useMemo(() => {
     const pricesBySec = new Map<string, typeof prices>();
@@ -251,10 +258,23 @@ export const Markets = () => {
   // Filter movers by exchange
   const filteredMovers = useMemo(() => {
     if (selectedExchange === 'ALL') {
-      return allMovers;
+      if (!globalLatestDate) return [];
+      // Only consider exchanges whose latest session date matches the global latest date
+      return allMovers.filter(m => {
+        const exId = m.security.exchangeId;
+        return exId && latestDateByExchange[exId] === globalLatestDate;
+      });
     }
     return allMovers.filter(m => m.security.exchangeId === selectedExchange);
-  }, [allMovers, selectedExchange]);
+  }, [allMovers, selectedExchange, globalLatestDate, latestDateByExchange]);
+
+  // Map the current active session date based on selection
+  const currentSessionDate = useMemo(() => {
+    if (selectedExchange === 'ALL') {
+      return globalLatestDate;
+    }
+    return latestDateByExchange[selectedExchange] || null;
+  }, [selectedExchange, globalLatestDate, latestDateByExchange]);
 
   // Sort and slice top 5 gainers and losers
   const marketGainers = useMemo(() => {
@@ -614,7 +634,14 @@ export const Markets = () => {
             <CardContent className="p-5">
               <div className="flex justify-between items-center mb-6 border-b border-slate-100 pb-4 flex-wrap gap-3">
                 <div>
-                  <div className="font-bold text-sm uppercase tracking-wide text-slate-800">Movers for the Markets</div>
+                  <div className="font-bold text-sm uppercase tracking-wide text-slate-800 flex items-center gap-2">
+                    <span>Movers for the Markets</span>
+                    {currentSessionDate && (
+                      <span className="text-[10px] font-bold text-slate-500 bg-slate-100 px-2 py-0.5 rounded border border-slate-200/50">
+                        Session: {currentSessionDate}
+                      </span>
+                    )}
+                  </div>
                   <div className="text-xs text-slate-400 mt-0.5">Top gainers and losers by percentage price change.</div>
                 </div>
                 
