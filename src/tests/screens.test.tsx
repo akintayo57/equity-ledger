@@ -147,9 +147,9 @@ describe('HoldingDetail screen tests', () => {
     );
 
     // sec-1 is GBTI (Guyana Bank for Trade and Industry Limited) in mockData
-    const titleEl = await screen.findByText(/Guyana Bank for Trade and Industry/i);
-    expect(titleEl).toBeInTheDocument();
-    expect(screen.getByText('Equity Metadata')).toBeInTheDocument();
+    const titleEls = await screen.findAllByText(/Guyana Bank for Trade and Industry/i);
+    expect(titleEls[0]).toBeInTheDocument();
+    expect(screen.getByText('Market Profile & Fundamentals')).toBeInTheDocument();
     
     // Switch to Research Notes tab
     const researchTab = screen.getByText(/Research Journal/i);

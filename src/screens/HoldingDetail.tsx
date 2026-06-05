@@ -2,7 +2,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { useStore } from '../store';
 import { Card, CardHeader, CardContent, StatBox, Badge } from '../components/ui/Cards';
 import { formatMoney, formatPercentage } from '../utils';
-import { ArrowLeft, Clock, AlertTriangle, Eye, EyeOff, BookOpen, UserPlus, Info, Newspaper, PlusCircle } from 'lucide-react';
+import { ArrowLeft, Clock, AlertTriangle, Eye, EyeOff, BookOpen, UserPlus, Info, Newspaper, PlusCircle, ChevronDown, ChevronUp } from 'lucide-react';
 import { format, subDays } from 'date-fns';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import React, { useMemo, useState } from 'react';
@@ -27,6 +27,7 @@ export const HoldingDetail = () => {
   const [notePb, setNotePb] = useState('');
   const [noteRoe, setNoteRoe] = useState('');
   const [showAddNoteForm, setShowAddNoteForm] = useState(false);
+  const [isMarketExpanded, setIsMarketExpanded] = useState(!holding);
 
   if (!security) {
     return <div className="p-4">Security not found.</div>;
@@ -78,6 +79,16 @@ export const HoldingDetail = () => {
   const secPrices = prices.filter(p => p.securityId === security.id).sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
   const lastPrice = secPrices.length > 0 ? secPrices[0].price : 0;
   const lastPriceDate = secPrices.length > 0 ? secPrices[0].date : null;
+
+  const changePct = useMemo(() => {
+    if (secPrices.length >= 2) {
+      const current = secPrices[0].price;
+      const prev = secPrices[1].price;
+      const diff = current - prev;
+      return prev > 0 ? (diff / prev) * 100 : 0;
+    }
+    return 0;
+  }, [secPrices]);
 
   const [chartRange, setChartRange] = useState<'1M' | '3M' | '6M' | '1Y'>('6M');
 
@@ -189,121 +200,9 @@ export const HoldingDetail = () => {
 
       {activeTab === 'OVERVIEW' && (
         <>
-          {/* Equity Info Section */}
-          <Card>
-            <CardContent className="p-4 space-y-4">
-              <div className="flex justify-between items-center border-b border-slate-100 pb-2">
-                <span className="text-xs font-semibold text-slate-400 uppercase tracking-wider">Equity Metadata</span>
-                <span className="text-xs text-slate-500">{exInfo.exchangeName} • {exInfo.country}</span>
-              </div>
-              
-              {latestNote && (
-                <div className="bg-blue-50/50 border border-blue-100 rounded-xl p-3 text-xs text-slate-700 leading-normal">
-                  <div className="font-semibold text-blue-800 mb-1 flex items-center">
-                    <Info className="w-3.5 h-3.5 mr-1" />
-                    Latest Synopsis ({latestNote.date})
-                  </div>
-                  <div className="font-medium text-slate-900 mb-1">{latestNote.title}</div>
-                  <p className="line-clamp-3 text-slate-600">{latestNote.synopsis}</p>
-                </div>
-              )}
-
-              <div className="flex justify-between items-center text-sm">
-                <span className="text-slate-500">Sector</span>
-                <span className="font-medium text-slate-900">{security.sector}</span>
-              </div>
-              <div className="flex justify-between items-center text-sm">
-                <span className="text-slate-500">Listed Currency</span>
-                <span className="font-semibold text-slate-900">{exInfo.currency}</span>
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* Interactive Pricing Line Chart */}
-          <Card className={isStale ? 'border-amber-200 bg-amber-50' : ''}>
-            <CardContent className="p-4 flex items-center justify-between border-b border-slate-100">
-              <div className="flex items-start space-x-3">
-                {isStale ? <AlertTriangle className="w-5 h-5 text-amber-500 shrink-0" /> : <Clock className="w-5 h-5 text-slate-400 shrink-0" />}
-                <div>
-                  <div className="text-sm font-semibold text-slate-800">
-                    Last Price: {formatMoney(lastPrice, exInfo.currency)}
-                  </div>
-                  <div className="text-xs text-slate-500 mt-1">
-                    As of {lastPriceDate ? format(new Date(lastPriceDate), 'MMM d, yyyy') : 'Unknown'}
-                  </div>
-                </div>
-              </div>
-              <div className="flex bg-slate-100 rounded-lg p-0.5 space-x-1">
-                {(['1M', '3M', '6M', '1Y'] as const).map(range => (
-                  <button
-                    key={range}
-                    onClick={() => setChartRange(range)}
-                    className={`px-2 py-1 text-[10px] font-medium rounded-md transition-colors cursor-pointer ${chartRange === range ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
-                  >
-                    {range}
-                  </button>
-                ))}
-              </div>
-            </CardContent>
-            <div className="p-4 h-48 w-full bg-white">
-              <ResponsiveContainer width="100%" height="100%">
-                <LineChart data={priceHistory} margin={{ top: 5, right: 0, left: -20, bottom: 0 }}>
-                  <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" />
-                  <XAxis dataKey="date" axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: '#64748b' }} dy={10} minTickGap={15} />
-                  <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: '#64748b' }} domain={['auto', 'auto']} tickFormatter={(val) => val.toFixed(0)} />
-                  <Tooltip 
-                    contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }}
-                    labelStyle={{ fontSize: '12px', color: '#64748b', marginBottom: '4px' }}
-                    itemStyle={{ fontSize: '14px', fontWeight: 'bold', color: '#0f172a' }}
-                    formatter={(value: number) => [`${exInfo.currency} ${value.toFixed(2)}`, 'Price']}
-                  />
-                  <Line type="monotone" dataKey="price" stroke="#2563eb" strokeWidth={2} dot={{ r: 3, fill: '#2563eb', strokeWidth: 0 }} activeDot={{ r: 5 }} />
-                </LineChart>
-              </ResponsiveContainer>
-            </div>
-          </Card>
-
-          {/* Fundamentals Card (Resolved from last Note or base) */}
-          {fundamentals && (
-            <Card>
-              <CardHeader 
-                title="Fundamentals & Metrics" 
-                action={
-                  <span className="text-[9px] text-blue-600 bg-blue-50 border border-blue-100 px-2 py-0.5 rounded uppercase font-bold">
-                    {latestNote ? 'From note synopsis' : `As of ${fundamentals.lastUpdated || 'Unknown'}`}
-                  </span>
-                } 
-              />
-              <CardContent className="p-0">
-                <div className="divide-y divide-slate-100">
-                  <div className="p-3 flex justify-between text-sm">
-                    <span className="text-slate-500">P/E Ratio</span>
-                    <span className="font-medium text-slate-900">{fundamentals.peRatio?.toFixed(1) || 'N/A'}</span>
-                  </div>
-                  <div className="p-3 flex justify-between text-sm">
-                    <span className="text-slate-500">EPS</span>
-                    <span className="font-medium text-slate-900">{fundamentals.eps ? formatMoney(fundamentals.eps, exInfo.currency) : 'N/A'}</span>
-                  </div>
-                  <div className="p-3 flex justify-between text-sm">
-                    <span className="text-slate-500">Div. Yield</span>
-                    <span className="font-medium text-slate-900">{fundamentals.dividendYield ? `${fundamentals.dividendYield.toFixed(1)}%` : 'N/A'}</span>
-                  </div>
-                  <div className="p-3 flex justify-between text-sm">
-                    <span className="text-slate-500">P/B Ratio</span>
-                    <span className="font-medium text-slate-900">{fundamentals.pbRatio?.toFixed(1) || 'N/A'}</span>
-                  </div>
-                  <div className="p-3 flex justify-between text-sm">
-                    <span className="text-slate-500">ROE</span>
-                    <span className="font-medium text-slate-900">{fundamentals.roe ? `${fundamentals.roe.toFixed(1)}%` : 'N/A'}</span>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          )}
-
-          {/* Holdings Return Section */}
+          {/* Card 1: Specific Holding Details (Personal Portfolio Info) */}
           {holding && (
-            <>
+            <div className="space-y-4">
               <Card className="bg-slate-900 border-slate-800 text-white shadow-md">
                 <CardContent className="p-6">
                   <div className="flex justify-between items-start mb-4">
@@ -365,11 +264,11 @@ export const HoldingDetail = () => {
                   </div>
                 </div>
               )}
-            </>
+            </div>
           )}
 
           {/* Transactions Book summary for specific holdings */}
-          {holdingTxs.length > 0 && (
+          {holding && holdingTxs.length > 0 && (
             <Card>
               <CardHeader title="Recent Transactions" />
               <CardContent className="p-0">
@@ -417,6 +316,140 @@ export const HoldingDetail = () => {
               </CardContent>
             </Card>
           )}
+
+          {/* Card 2: Market Profile & Fundamentals (Collapsible Widget) */}
+          <Card className="overflow-hidden border border-slate-200">
+            <button
+              onClick={() => setIsMarketExpanded(prev => !prev)}
+              className="w-full p-4 flex justify-between items-center bg-white hover:bg-slate-50/40 transition-colors text-left focus:outline-none cursor-pointer"
+            >
+              <div>
+                <span className="font-bold text-sm text-slate-900">Market Profile & Fundamentals</span>
+                <p className="text-[11px] text-slate-400 mt-0.5">{security.companyName} • {exInfo.exchangeName}</p>
+              </div>
+              <div className="flex items-center space-x-3 shrink-0">
+                <div className="text-right">
+                  <div className="font-extrabold text-sm text-slate-900">
+                    {lastPrice > 0 ? formatMoney(lastPrice, exInfo.currency) : 'No Price'}
+                  </div>
+                  {lastPrice > 0 && (
+                    <div className={`text-[10px] font-bold ${changePct >= 0 ? 'text-emerald-600' : 'text-rose-600'}`}>
+                      {changePct >= 0 ? '+' : ''}{changePct.toFixed(2)}%
+                    </div>
+                  )}
+                </div>
+                {isMarketExpanded ? (
+                  <ChevronUp className="w-5 h-5 text-slate-500" />
+                ) : (
+                  <ChevronDown className="w-5 h-5 text-slate-500" />
+                )}
+              </div>
+            </button>
+
+            {isMarketExpanded && (
+              <div className="border-t border-slate-100 bg-white">
+                {/* 2.1 Metadata Details */}
+                <div className="p-4 bg-slate-50/50 space-y-3 border-b border-slate-100">
+                  <div className="flex justify-between items-center text-xs">
+                    <span className="text-slate-500">Country</span>
+                    <span className="font-medium text-slate-900">{exInfo.country}</span>
+                  </div>
+                  <div className="flex justify-between items-center text-xs">
+                    <span className="text-slate-500">Sector</span>
+                    <span className="font-medium text-slate-900">{security.sector}</span>
+                  </div>
+                  <div className="flex justify-between items-center text-xs">
+                    <span className="text-slate-500">Currency</span>
+                    <span className="font-semibold text-slate-900">{exInfo.currency}</span>
+                  </div>
+                </div>
+
+                {/* 2.2 Latest Research Synopsis (if any) */}
+                {latestNote && (
+                  <div className="p-4 border-b border-slate-100">
+                    <div className="bg-blue-50/50 border border-blue-100 rounded-xl p-3 text-xs text-slate-700 leading-normal">
+                      <div className="font-semibold text-blue-800 mb-1 flex items-center">
+                        <Info className="w-3.5 h-3.5 mr-1" />
+                        Latest Synopsis ({latestNote.date})
+                      </div>
+                      <div className="font-medium text-slate-900 mb-1">{latestNote.title}</div>
+                      <p className="text-slate-600">{latestNote.synopsis}</p>
+                    </div>
+                  </div>
+                )}
+
+                {/* 2.3 Interactive Pricing Line Chart (Only mounted when expanded) */}
+                <div className="p-4 border-b border-slate-100 space-y-4">
+                  <div className="flex justify-between items-center">
+                    <span className="text-xs font-bold text-slate-400 uppercase tracking-widest">Price History</span>
+                    <div className="flex bg-slate-100 rounded-lg p-0.5 space-x-1">
+                      {(['1M', '3M', '6M', '1Y'] as const).map(range => (
+                        <button
+                          key={range}
+                          onClick={() => setChartRange(range)}
+                          className={`px-2 py-1 text-[10px] font-medium rounded-md transition-colors cursor-pointer ${chartRange === range ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
+                        >
+                          {range}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div className="h-48 w-full bg-white">
+                    <ResponsiveContainer width="100%" height="100%">
+                      <LineChart data={priceHistory} margin={{ top: 5, right: 0, left: -20, bottom: 0 }}>
+                        <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" />
+                        <XAxis dataKey="date" axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: '#64748b' }} dy={10} minTickGap={15} />
+                        <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: '#64748b' }} domain={['auto', 'auto']} tickFormatter={(val) => val.toFixed(0)} />
+                        <Tooltip 
+                          contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }}
+                          labelStyle={{ fontSize: '12px', color: '#64748b', marginBottom: '4px' }}
+                          itemStyle={{ fontSize: '14px', fontWeight: 'bold', color: '#0f172a' }}
+                          formatter={(value: number) => [`${exInfo.currency} ${value.toFixed(2)}`, 'Price']}
+                        />
+                        <Line type="monotone" dataKey="price" stroke="#2563eb" strokeWidth={2} dot={{ r: 3, fill: '#2563eb', strokeWidth: 0 }} activeDot={{ r: 5 }} />
+                      </LineChart>
+                    </ResponsiveContainer>
+                  </div>
+                </div>
+
+                {/* 2.4 Fundamentals */}
+                {fundamentals && (
+                  <div className="p-4 space-y-3">
+                    <div className="flex justify-between items-center border-b border-slate-100 pb-2">
+                      <span className="text-xs font-bold text-slate-400 uppercase tracking-widest">Fundamentals & Metrics</span>
+                      <span className="text-[9px] text-blue-600 bg-blue-50 border border-blue-100 px-2 py-0.5 rounded uppercase font-bold">
+                        {latestNote ? 'From note synopsis' : `As of ${fundamentals.lastUpdated || 'Unknown'}`}
+                      </span>
+                    </div>
+
+                    <div className="divide-y divide-slate-100 text-sm">
+                      <div className="py-2.5 flex justify-between">
+                        <span className="text-slate-500">P/E Ratio</span>
+                        <span className="font-medium text-slate-900">{fundamentals.peRatio?.toFixed(1) || 'N/A'}</span>
+                      </div>
+                      <div className="py-2.5 flex justify-between">
+                        <span className="text-slate-500">EPS</span>
+                        <span className="font-medium text-slate-900">{fundamentals.eps ? formatMoney(fundamentals.eps, exInfo.currency) : 'N/A'}</span>
+                      </div>
+                      <div className="py-2.5 flex justify-between">
+                        <span className="text-slate-500">Div. Yield</span>
+                        <span className="font-medium text-slate-900">{fundamentals.dividendYield ? `${fundamentals.dividendYield.toFixed(1)}%` : 'N/A'}</span>
+                      </div>
+                      <div className="py-2.5 flex justify-between">
+                        <span className="text-slate-500">P/B Ratio</span>
+                        <span className="font-medium text-slate-900">{fundamentals.pbRatio?.toFixed(1) || 'N/A'}</span>
+                      </div>
+                      <div className="py-2.5 flex justify-between">
+                        <span className="text-slate-500">ROE</span>
+                        <span className="font-medium text-slate-900">{fundamentals.roe ? `${fundamentals.roe.toFixed(1)}%` : 'N/A'}</span>
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+          </Card>
         </>
       )}
 
