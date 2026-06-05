@@ -76,6 +76,44 @@ describe('Markets screen tests', () => {
       fireEvent.click(bseFilter);
     });
   });
+
+  it('should support searching and selecting an equity to show its expanded profile', async () => {
+    renderWithContext(<Markets />);
+
+    await act(async () => {
+      await new Promise(resolve => setTimeout(resolve, 50));
+    });
+
+    const searchInput = screen.getByPlaceholderText('Search all equities across exchanges...');
+    expect(searchInput).toBeInTheDocument();
+
+    // Type DTC (Demerara Tobacco Company Limited)
+    await act(async () => {
+      fireEvent.change(searchInput, { target: { value: 'DTC' } });
+    });
+
+    // Autocomplete dropdown should render DTC ticker
+    const resultItem = screen.getByText('DTC');
+    expect(resultItem).toBeInTheDocument();
+
+    // Click the result
+    await act(async () => {
+      fireEvent.click(resultItem);
+    });
+
+    // Expanded fundamentals card should render
+    expect(screen.getByText('Market Profile & Fundamentals')).toBeInTheDocument();
+    expect(screen.getByText(/Demerara Tobacco Company/i)).toBeInTheDocument();
+
+    // Close details
+    const closeBtn = screen.getByTitle('Close profile');
+    await act(async () => {
+      fireEvent.click(closeBtn);
+    });
+
+    // Default overview (e.g. indices) should return
+    expect(screen.getByText('GASCI Index')).toBeInTheDocument();
+  });
 });
 
 describe('Portfolio tab switcher tests', () => {
