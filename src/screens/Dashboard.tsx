@@ -219,12 +219,6 @@ export const Dashboard = () => {
 
   return (
     <div className="space-y-4 pb-6">
-      {/* Page Header */}
-      <div>
-        <h2 className="text-xl font-bold text-slate-900 tracking-tight">Portfolio Dashboard</h2>
-        <p className="text-xs text-slate-500">Real-time asset valuation, growth rates, and geographical allocation of your holdings.</p>
-      </div>
-
       {/* Main Portfolio Summary Card */}
       <Card className="bg-slate-900 text-white border-slate-800 relative overflow-hidden group shadow-lg">
         <div className="absolute -right-10 -bottom-10 w-40 h-40 bg-blue-500/10 rounded-full blur-2xl pointer-events-none" />

@@ -30,6 +30,12 @@ export const Portfolio = () => {
 
   return (
     <div className="space-y-4">
+      {/* Page Header */}
+      <div>
+        <h2 className="text-xl font-bold text-slate-900 tracking-tight">Portfolio</h2>
+        <p className="text-xs text-slate-500">Real-time asset valuation, growth rates, and geographical allocation of your holdings.</p>
+      </div>
+
       {/* Horizontal Sub-Tab Switcher - Stickied right below the header */}
       <div className="flex border-b border-slate-200 overflow-x-auto scrollbar-none -mx-4 px-4 bg-white sticky top-[53px] z-10 shadow-xs">
         {subTabs.map(tab => {

@@ -45,7 +45,6 @@ describe('Dashboard screen tests', () => {
       await new Promise(resolve => setTimeout(resolve, 50));
     });
 
-    expect(screen.getByText('Portfolio Dashboard')).toBeInTheDocument();
     expect(screen.getByText(/Total Value/i)).toBeInTheDocument();
     expect(screen.getByText('Holdings')).toBeInTheDocument();
   });
@@ -148,6 +147,10 @@ describe('Portfolio tab switcher tests', () => {
     await act(async () => {
       await new Promise(resolve => setTimeout(resolve, 50));
     });
+
+    // Check page header rendering
+    expect(screen.getByText('Portfolio', { selector: 'h2' })).toBeInTheDocument();
+    expect(screen.getByText(/Real-time asset valuation/i)).toBeInTheDocument();
 
     // Check tabs rendering
     expect(screen.getByText('Summary')).toBeInTheDocument();
