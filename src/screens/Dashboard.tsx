@@ -110,12 +110,12 @@ export const Dashboard = () => {
         </Card>
       )}
 
-      {/* Largest Holdings */}
+      {/* Holdings */}
       <Card>
         <CardContent className="p-5">
-          <div className="font-bold text-xs uppercase tracking-widest text-slate-850 mb-4 border-b border-slate-100 pb-2">Largest Holdings</div>
+          <div className="font-bold text-xs uppercase tracking-widest text-slate-850 mb-4 border-b border-slate-100 pb-2">Holdings</div>
           <div className="space-y-3">
-            {holdings.slice(0, 4).map(h => (
+            {holdings.map(h => (
               <Link 
                 to={`/holdings/${h.security.id}`} 
                 key={h.security.id} 

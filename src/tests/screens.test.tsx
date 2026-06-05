@@ -47,7 +47,7 @@ describe('Dashboard screen tests', () => {
 
     expect(screen.getByText('Portfolio Dashboard')).toBeInTheDocument();
     expect(screen.getByText(/Total Value/i)).toBeInTheDocument();
-    expect(screen.getByText('Largest Holdings')).toBeInTheDocument();
+    expect(screen.getByText('Holdings')).toBeInTheDocument();
   });
 });
 
@@ -131,17 +131,9 @@ describe('Portfolio tab switcher tests', () => {
 
     // Check tabs rendering
     expect(screen.getByText('Summary')).toBeInTheDocument();
-    expect(screen.getByText('Holdings')).toBeInTheDocument();
     expect(screen.getByText('Watchlist')).toBeInTheDocument();
     expect(screen.getByText('Performance')).toBeInTheDocument();
     expect(screen.getByText('Transactions')).toBeInTheDocument();
-
-    // Click Holdings tab
-    const holdingsTab = screen.getByText('Holdings');
-    await act(async () => {
-      fireEvent.click(holdingsTab);
-    });
-    expect(screen.getByPlaceholderText('Search holdings and market...')).toBeInTheDocument();
 
     // Click Watchlist tab
     const watchlistTab = screen.getByText('Watchlist');

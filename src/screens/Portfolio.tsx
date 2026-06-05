@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useLocation } from 'react-router-dom';
 import { Dashboard } from './Dashboard';
-import { HoldingsList, WatchlistTab } from './Holdings';
+import { WatchlistTab } from './Holdings';
 import { Performance } from './Performance';
 import { Transactions } from './Transactions';
 import { LayoutDashboard, Wallet, Eye, Briefcase, ArrowLeftRight } from 'lucide-react';
@@ -22,7 +22,6 @@ export const Portfolio = () => {
 
   const subTabs = [
     { id: 'SUMMARY' as const, name: 'Summary', icon: LayoutDashboard },
-    { id: 'HOLDINGS' as const, name: 'Holdings', icon: Wallet },
     { id: 'WATCHLIST' as const, name: 'Watchlist', icon: Eye },
     { id: 'PERFORMANCE' as const, name: 'Performance', icon: Briefcase },
     { id: 'TRANSACTIONS' as const, name: 'Transactions', icon: ArrowLeftRight },
@@ -55,7 +54,6 @@ export const Portfolio = () => {
       {/* Tab Render Container */}
       <div className="transition-all duration-300">
         {activeSubTab === 'SUMMARY' && <Dashboard />}
-        {activeSubTab === 'HOLDINGS' && <HoldingsList />}
         {activeSubTab === 'WATCHLIST' && <WatchlistTab />}
         {activeSubTab === 'PERFORMANCE' && <Performance />}
         {activeSubTab === 'TRANSACTIONS' && <Transactions />}
