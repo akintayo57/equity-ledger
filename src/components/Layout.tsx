@@ -1,3 +1,4 @@
+import { useEffect } from 'react';
 import { Link, Outlet, useLocation } from 'react-router-dom';
 import { Wallet, Settings, LogOut, TrendingUp } from 'lucide-react';
 import { clsx, type ClassValue } from 'clsx';
@@ -19,6 +20,11 @@ const navItems = [
 
 export const Layout = ({ user }: { user: User }) => {
   const location = useLocation();
+
+  // Scroll to top on route changes to prevent sticky layout overlap
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, [location.pathname]);
 
   const handleLogout = async () => {
     try {

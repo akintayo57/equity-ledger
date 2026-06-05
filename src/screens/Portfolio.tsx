@@ -18,6 +18,11 @@ export const Portfolio = () => {
     }
   }, [locationState]);
 
+  // Scroll to top when switching sub-tabs to prevent content from hiding under sticky tab switcher
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, [activeSubTab]);
+
   const subTabs = [
     { id: 'SUMMARY' as const, name: 'Summary', icon: LayoutDashboard },
     { id: 'WATCHLIST' as const, name: 'Watchlist', icon: Eye },

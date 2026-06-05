@@ -24,6 +24,9 @@ class ResizeObserverMock {
 }
 window.ResizeObserver = ResizeObserverMock;
 
+// Mock window.scrollTo to prevent JSDOM warnings
+window.scrollTo = vi.fn();
+
 // Mock Firebase libraries
 vi.mock('firebase/app', () => ({
   initializeApp: vi.fn(() => ({})),
