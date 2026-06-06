@@ -210,7 +210,8 @@ const getMockCollection = (collectionPath: string): any[] => {
         { id: 'GASCI', name: 'Guyana Stock Exchange', country: 'Guyana', currency: 'GYD' },
         { id: 'BSE', name: 'Barbados Stock Exchange', country: 'Barbados', currency: 'BBD' },
         { id: 'TTSE', name: 'Trinidad & Tobago Stock Exchange', country: 'Trinidad & Tobago', currency: 'TTD' },
-        { id: 'JSE', name: 'Jamaica Stock Exchange', country: 'Jamaica', currency: 'JMD' }
+        { id: 'JSE', name: 'Jamaica Stock Exchange', country: 'Jamaica', currency: 'JMD' },
+        { id: 'ECSE', name: 'Eastern Caribbean Securities Exchange', country: 'Eastern Caribbean', currency: 'XCD' }
       ];
     }
     return [];
@@ -223,7 +224,8 @@ const getMockCollection = (collectionPath: string): any[] => {
       { id: 'GASCI', name: 'Guyana Stock Exchange', country: 'Guyana', currency: 'GYD' },
       { id: 'BSE', name: 'Barbados Stock Exchange', country: 'Barbados', currency: 'BBD' },
       { id: 'TTSE', name: 'Trinidad & Tobago Stock Exchange', country: 'Trinidad & Tobago', currency: 'TTD' },
-      { id: 'JSE', name: 'Jamaica Stock Exchange', country: 'Jamaica', currency: 'JMD' }
+      { id: 'JSE', name: 'Jamaica Stock Exchange', country: 'Jamaica', currency: 'JMD' },
+      { id: 'ECSE', name: 'Eastern Caribbean Securities Exchange', country: 'Eastern Caribbean', currency: 'XCD' }
     ];
   } else if (collectionPath === 'securities') {
     initialData = initialSecurities.map(s => {

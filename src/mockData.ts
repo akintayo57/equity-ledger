@@ -28,6 +28,11 @@ export const initialSecurities: any[] = [
   { id: 'sec-rdl', companyName: 'Rupununi Development Company Limited', ticker: 'RDL', exchange: 'GASCI', country: 'Guyana', currency: 'GYD', sector: 'Consumer Staples', status: 'ACTIVE' },
   { id: 'sec-spl', companyName: 'Sterling Products Limited', ticker: 'SPL', exchange: 'GASCI', country: 'Guyana', currency: 'GYD', sector: 'Consumer Staples', status: 'ACTIVE' },
   { id: 'sec-tcl', companyName: 'Trinidad Cement Limited', ticker: 'TCL', exchange: 'GASCI', country: 'Guyana', currency: 'GYD', sector: 'Industrials', status: 'ACTIVE' },
+  
+  // ECSE Equities
+  { id: 'sec-bon', companyName: 'The Bank of Nevis Limited', ticker: 'BON', exchange: 'ECSE', country: 'Eastern Caribbean', currency: 'XCD', sector: 'Financials', status: 'ACTIVE', fundamentals: { peRatio: 9.2, eps: 0.32, dividendYield: 3.3, pbRatio: 1.1, roe: 12.0, lastUpdated: '2023-12-31' } },
+  { id: 'sec-ecfh', companyName: 'East Caribbean Financial Holding Company Ltd', ticker: 'ECFH', exchange: 'ECSE', country: 'Eastern Caribbean', currency: 'XCD', sector: 'Financials', status: 'ACTIVE', fundamentals: { peRatio: 10.5, eps: 1.18, dividendYield: 4.1, pbRatio: 1.3, roe: 14.5, lastUpdated: '2023-12-31' } },
+  { id: 'sec-wioc', companyName: 'The West Indies Oil Company Limited', ticker: 'WIOC', exchange: 'ECSE', country: 'Eastern Caribbean', currency: 'XCD', sector: 'Energy', status: 'ACTIVE', fundamentals: { peRatio: 12.0, eps: 5.00, dividendYield: 5.0, pbRatio: 1.5, roe: 13.2, lastUpdated: '2023-12-31' } }
 ];
 
 // Helpers to generate weekly historical prices and exchange rates over 6 months
@@ -86,7 +91,10 @@ export const initialPrices: PriceUpdate[] = [
   ...generatePriceHistory('sec-6', 95, 'JMD', 'JSE'),
   ...generatePriceHistory('sec-7', 82, 'JMD', 'JSE'),
   ...generatePriceHistory('sec-8', 15.5, 'TTD', 'TTSE'),
-  ...generatePriceHistory('sec-9', 1.85, 'BBD', 'BSE')
+  ...generatePriceHistory('sec-9', 1.85, 'BBD', 'BSE'),
+  ...generatePriceHistory('sec-bon', 3.00, 'XCD', 'ECSE'),
+  ...generatePriceHistory('sec-ecfh', 12.40, 'XCD', 'ECSE'),
+  ...generatePriceHistory('sec-wioc', 60.00, 'XCD', 'ECSE')
 ];
 
 export const initialFXRates: FXRate[] = [

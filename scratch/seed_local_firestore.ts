@@ -78,7 +78,8 @@ async function seedExchanges() {
     { id: 'GASCI', name: 'Guyana Stock Exchange', country: 'Guyana', currency: 'GYD' },
     { id: 'BSE', name: 'Barbados Stock Exchange', country: 'Barbados', currency: 'BBD' },
     { id: 'TTSE', name: 'Trinidad & Tobago Stock Exchange', country: 'Trinidad & Tobago', currency: 'TTD' },
-    { id: 'JSE', name: 'Jamaica Stock Exchange', country: 'Jamaica', currency: 'JMD' }
+    { id: 'JSE', name: 'Jamaica Stock Exchange', country: 'Jamaica', currency: 'JMD' },
+    { id: 'ECSE', name: 'Eastern Caribbean Securities Exchange', country: 'Eastern Caribbean', currency: 'XCD' }
   ];
 
   console.log('Syncing standard exchanges to Firestore exchanges collection...');
@@ -173,6 +174,45 @@ async function seedSecurities() {
     batch.set(docRef, securityDoc);
   }
 
+  // 3. Process ECSE Securities
+  const ecseSecPath = path.resolve('equity-ledger/exports/ecse_securities.csv');
+  if (fs.existsSync(ecseSecPath)) {
+    console.log(`Reading ECSE securities from: ${ecseSecPath}`);
+    const ecseSecContent = fs.readFileSync(ecseSecPath, 'utf-8');
+    const ecseSecRows = parseCSV(ecseSecContent);
+    const ecseSecHeaders = ecseSecRows[0];
+    const ecseSecColMap: Record<string, number> = {};
+    ecseSecHeaders.forEach((h, idx) => { ecseSecColMap[h.toLowerCase()] = idx; });
+
+    for (let i = 1; i < ecseSecRows.length; i++) {
+      const row = ecseSecRows[i];
+      if (row.length < ecseSecHeaders.length) continue;
+
+      const symbol = row[ecseSecColMap['symbol']].toUpperCase();
+      const name = row[ecseSecColMap['name']];
+      const sector = row[ecseSecColMap['sector']] || 'Financials';
+      const status = row[ecseSecColMap['status']].toUpperCase();
+
+      const docId = getSecurityId(symbol, 'ECSE');
+      const currency = 'XCD';
+
+      tickerToDocId[symbol] = { id: docId, exchangeId: 'ECSE', currency };
+
+      const securityDoc = {
+        id: docId,
+        companyName: name,
+        ticker: symbol,
+        exchangeId: 'ECSE',
+        sector,
+        status: 'ACTIVE',
+        currency
+      };
+
+      const docRef = doc(db, 'securities', docId);
+      batch.set(docRef, securityDoc);
+    }
+  }
+
   await batch.commit();
   console.log('Securities seeding complete!');
   return tickerToDocId;
@@ -259,6 +299,46 @@ async function seedPrices(tickerToDocId: Record<string, { id: string, exchangeId
     });
   }
 
+  // 3. Process ECSE Prices
+  const ecsePricesPath = path.resolve('equity-ledger/exports/ecse_prices.csv');
+  if (fs.existsSync(ecsePricesPath)) {
+    console.log(`Reading ECSE prices from: ${ecsePricesPath}`);
+    const ecsePricesContent = fs.readFileSync(ecsePricesPath, 'utf-8');
+    const ecsePricesRows = parseCSV(ecsePricesContent);
+    const ecsePricesHeaders = ecsePricesRows[0];
+    const ecsePricesColMap: Record<string, number> = {};
+    ecsePricesHeaders.forEach((h, idx) => { ecsePricesColMap[h.toLowerCase()] = idx; });
+
+    for (let i = 1; i < ecsePricesRows.length; i++) {
+      const row = ecsePricesRows[i];
+      if (row.length < ecsePricesHeaders.length) continue;
+
+      const symbol = row[ecsePricesColMap['symbol']].toUpperCase();
+      const date = row[ecsePricesColMap['price_date']];
+      const closePriceStr = row[ecsePricesColMap['close_price']];
+      const notes = ecsePricesColMap['notes'] !== undefined ? row[ecsePricesColMap['notes']] : '';
+
+      if (date < startDate || date > endDate) continue;
+
+      const closePrice = parseFloat(closePriceStr);
+      if (isNaN(closePrice)) continue;
+
+      const mapping = tickerToDocId[symbol];
+      if (!mapping || mapping.exchangeId !== 'ECSE') continue;
+
+      const docId = `px-${mapping.id}-${date}`;
+      allPrices.push({
+        id: docId,
+        securityId: mapping.id,
+        date,
+        price: closePrice,
+        currency: mapping.currency,
+        source: 'ECSE Daily Close',
+        notes: notes || undefined
+      });
+    }
+  }
+
   console.log(`Starting batch upload of ${allPrices.length} total prices in chunks of 500...`);
   const chunkSize = 500;
   for (let i = 0; i < allPrices.length; i += chunkSize) {
@@ -286,7 +366,7 @@ async function main() {
     await seedExchanges();
     const tickerMap = await seedSecurities();
     await seedPrices(tickerMap);
-    console.log('Local Firestore database successfully populated with GASCI and BSE datasets!');
+    console.log('Local Firestore database successfully populated with GASCI, BSE, and ECSE datasets!');
     process.exit(0);
   } catch (error) {
     console.error('Error during local seeding execution:', error);
