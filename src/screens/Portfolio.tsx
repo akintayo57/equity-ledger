@@ -32,12 +32,12 @@ export const Portfolio = () => {
     <div className="space-y-4">
       {/* Page Header */}
       <div>
-        <h2 className="text-xl font-bold text-slate-900 tracking-tight">Portfolio</h2>
-        <p className="text-xs text-slate-500">Real-time asset valuation, growth rates, and geographical allocation of your holdings.</p>
+        <h2 className="text-xl font-bold text-slate-900 dark:text-white tracking-tight">Portfolio</h2>
+        <p className="text-xs text-slate-500 dark:text-slate-400">Real-time asset valuation, growth rates, and geographical allocation of your holdings.</p>
       </div>
 
       {/* Horizontal Sub-Tab Switcher - Stickied right below the header */}
-      <div className="flex border-b border-slate-200 overflow-x-auto scrollbar-none -mx-4 px-4 bg-white sticky top-[53px] z-10 shadow-xs">
+      <div className="flex border-b border-slate-200 dark:border-slate-800 overflow-x-auto scrollbar-none -mx-4 px-4 bg-white dark:bg-slate-900 sticky top-[53px] z-10 shadow-xs">
         {subTabs.map(tab => {
           const isActive = activeSubTab === tab.id;
           const Icon = tab.icon;
@@ -48,7 +48,7 @@ export const Portfolio = () => {
               className={`flex items-center space-x-1.5 py-3 px-3.5 border-b-2 text-xs font-semibold whitespace-nowrap transition-all duration-200 shrink-0 cursor-pointer ${
                 isActive 
                   ? 'border-blue-600 text-blue-600 bg-blue-50/5' 
-                  : 'border-transparent text-slate-500 hover:text-slate-900 hover:border-slate-350'
+                  : 'border-transparent text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white hover:border-slate-350 dark:hover:border-slate-700'
               }`}
             >
               <Icon className={`w-3.5 h-3.5 ${isActive ? 'stroke-[2.25]' : 'stroke-[1.75]'}`} />

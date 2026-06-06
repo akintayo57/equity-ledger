@@ -12,7 +12,7 @@ export const HoldingDetail = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const location = useLocation();
-  const { holdings, transactions, securities, prices, exchanges, watchlist, equityNotes, toggleWatchlist, addEquityNote } = useStore();
+  const { holdings, transactions, securities, prices, exchanges, watchlist, equityNotes, toggleWatchlist, addEquityNote, theme } = useStore();
 
   const [activeTab, setActiveTab] = useState<'OVERVIEW' | 'RESEARCH'>('OVERVIEW');
 
@@ -171,17 +171,17 @@ export const HoldingDetail = () => {
       {/* Header */}
       <div className="flex items-center justify-between mb-6">
         <div className="flex items-center space-x-3">
-          <button onClick={() => navigate(-1)} className="p-2 bg-white rounded-full border border-slate-200 shadow-sm cursor-pointer">
-            <ArrowLeft className="w-4 h-4 text-slate-700" />
+          <button onClick={() => navigate(-1)} className="p-2 bg-white dark:bg-slate-900 rounded-full border border-slate-200 dark:border-slate-800 shadow-sm cursor-pointer">
+            <ArrowLeft className="w-4 h-4 text-slate-700 dark:text-slate-300" />
           </button>
           <div>
-            <h2 className="text-xl font-bold text-slate-900 leading-tight">{security.ticker}</h2>
-            <div className="text-xs text-slate-500">{security.companyName}</div>
+            <h2 className="text-xl font-bold text-slate-900 dark:text-white leading-tight">{security.ticker}</h2>
+            <div className="text-xs text-slate-500 dark:text-slate-400">{security.companyName}</div>
           </div>
         </div>
         <button 
           onClick={() => toggleWatchlist(security.id)} 
-          className={`p-2 rounded-full border shadow-sm transition-colors cursor-pointer ${isWatched ? 'bg-blue-50 border-blue-200 text-blue-600' : 'bg-white border-slate-200 text-slate-600'}`}
+          className={`p-2 rounded-full border shadow-sm transition-colors cursor-pointer ${isWatched ? 'bg-blue-50 dark:bg-blue-950/30 border-blue-200 dark:border-blue-800 text-blue-600 dark:text-blue-400' : 'bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-450'}`}
           title={isWatched ? "Remove from Watchlist" : "Add to Watchlist"}
         >
           {isWatched ? <Eye className="w-4 h-4" /> : <EyeOff className="w-4 h-4" />}
@@ -189,16 +189,16 @@ export const HoldingDetail = () => {
       </div>
 
       {/* Tabs */}
-      <div className="grid grid-cols-2 gap-2 p-1 bg-slate-200 rounded-lg">
+      <div className="grid grid-cols-2 gap-2 p-1 bg-slate-200 dark:bg-slate-800 rounded-lg">
         <button 
           onClick={() => setActiveTab('OVERVIEW')}
-          className={`py-2 text-xs font-medium rounded-md transition-colors cursor-pointer ${activeTab === 'OVERVIEW' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-600'}`}
+          className={`py-2 text-xs font-medium rounded-md transition-colors cursor-pointer ${activeTab === 'OVERVIEW' ? 'bg-white dark:bg-slate-900 text-slate-900 dark:text-white shadow-sm' : 'text-slate-600 dark:text-slate-400'}`}
         >
           Overview
         </button>
         <button 
           onClick={() => setActiveTab('RESEARCH')}
-          className={`py-2 text-xs font-medium rounded-md transition-colors flex items-center justify-center space-x-1 cursor-pointer ${activeTab === 'RESEARCH' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-600'}`}
+          className={`py-2 text-xs font-medium rounded-md transition-colors flex items-center justify-center space-x-1 cursor-pointer ${activeTab === 'RESEARCH' ? 'bg-white dark:bg-slate-900 text-slate-900 dark:text-white shadow-sm' : 'text-slate-600 dark:text-slate-400'}`}
         >
           <BookOpen className="w-3.5 h-3.5 mr-1" />
           Research Journal ({notes.length})
@@ -210,33 +210,33 @@ export const HoldingDetail = () => {
           {/* Card 1: Specific Holding Details (Personal Portfolio Info) */}
           {holding && (
             <div className="space-y-4">
-              <Card className="bg-slate-900 border-slate-800 text-white shadow-md">
+              <Card className="bg-white dark:bg-slate-900 text-slate-900 dark:text-white border-slate-100 dark:border-slate-800 shadow-md transition-colors duration-300">
                 <CardContent className="p-6">
                   <div className="flex justify-between items-start mb-4">
                     <div>
-                      <div className="text-slate-400 text-xs uppercase tracking-wider mb-1">Market Value (USD)</div>
+                      <div className="text-slate-500 dark:text-slate-400 text-xs uppercase tracking-wider mb-1">Market Value (USD)</div>
                       <div className="text-3xl font-bold">{formatMoney(holding.marketValueUSD, 'USD')}</div>
                     </div>
                     <div className="text-right">
-                      <div className="text-slate-400 text-xs uppercase tracking-wider mb-1">Total Return</div>
-                      <div className={isGreen ? 'text-emerald-400 text-lg font-bold' : 'text-rose-400 text-lg font-bold'}>
+                      <div className="text-slate-500 dark:text-slate-400 text-xs uppercase tracking-wider mb-1">Total Return</div>
+                      <div className={isGreen ? 'text-emerald-650 dark:text-emerald-400 text-lg font-bold' : 'text-rose-650 dark:text-rose-455 text-lg font-bold'}>
                         {isGreen ? '+' : ''}{formatPercentage(holding.unrealizedGainLossPctUSD)}
                       </div>
                     </div>
                   </div>
                   
-                  <div className="grid grid-cols-3 gap-3 border-t border-slate-700 pt-4 mt-4 text-xs">
+                  <div className="grid grid-cols-3 gap-3 border-t border-slate-100 dark:border-slate-800 pt-4 mt-4 text-xs">
                     <div>
-                      <div className="text-slate-400 mb-1">Local Value</div>
-                      <div className="font-medium">{formatMoney(holding.marketValueLocal, exInfo.currency)}</div>
+                      <div className="text-slate-500 dark:text-slate-400 mb-1">Local Value</div>
+                      <div className="font-medium text-slate-900 dark:text-white">{formatMoney(holding.marketValueLocal, exInfo.currency)}</div>
                     </div>
                     <div>
-                      <div className="text-slate-400 mb-1">Cost Basis (USD)</div>
-                      <div className="font-medium">{formatMoney(holding.totalCostBasisUSD, 'USD')}</div>
+                      <div className="text-slate-500 dark:text-slate-400 mb-1">Cost Basis (USD)</div>
+                      <div className="font-medium text-slate-900 dark:text-white">{formatMoney(holding.totalCostBasisUSD, 'USD')}</div>
                     </div>
                     <div>
-                      <div className="text-slate-400 mb-1">Realized Dividends</div>
-                      <div className="font-semibold text-blue-400">{formatMoney(holding.totalDividendsUSD, 'USD')}</div>
+                      <div className="text-slate-500 dark:text-slate-400 mb-1">Realized Dividends</div>
+                      <div className="font-semibold text-blue-600 dark:text-blue-400">{formatMoney(holding.totalDividendsUSD, 'USD')}</div>
                     </div>
                   </div>
                 </CardContent>
@@ -261,11 +261,11 @@ export const HoldingDetail = () => {
               </div>
 
               {holding.hasUncertainty && (
-                <div className="bg-amber-50 border border-amber-200/60 rounded-2xl p-4 flex items-start space-x-3 text-amber-800">
+                <div className="bg-amber-50 dark:bg-amber-950/20 border border-amber-200/60 dark:border-amber-900/40 rounded-2xl p-4 flex items-start space-x-3 text-amber-800 dark:text-amber-400">
                   <AlertTriangle className="w-5 h-5 text-amber-500 shrink-0 mt-0.5" />
                   <div className="text-xs space-y-1">
                     <div className="font-bold">Estimated Cost Basis & Returns</div>
-                    <p className="text-slate-600 leading-normal">
+                    <p className="text-slate-600 dark:text-slate-400 leading-normal">
                       This holding contains transactions with estimated cost basis (e.g. inherited shares or predate exchange). Gains and returns are calculated as estimates.
                     </p>
                   </div>
@@ -279,37 +279,37 @@ export const HoldingDetail = () => {
             <Card>
               <CardHeader title="Recent Transactions" />
               <CardContent className="p-0">
-                <div className="divide-y divide-slate-100">
+                <div className="divide-y divide-slate-100 dark:divide-slate-800">
                   {holdingTxs.map((tx) => (
                     <div key={tx.id} className="p-3 flex justify-between items-center text-sm">
                       <div>
                         <div className="flex items-center space-x-1.5">
                           <span className={`font-semibold text-xs ${
                             tx.type === 'BUY' 
-                              ? 'text-emerald-700' 
+                              ? 'text-emerald-600 dark:text-emerald-450' 
                               : tx.type === 'SELL' 
-                              ? 'text-rose-700' 
+                              ? 'text-rose-600 dark:text-rose-455' 
                               : tx.type === 'INHERIT'
-                              ? 'text-amber-700'
+                              ? 'text-amber-600 dark:text-amber-450'
                               : tx.type === 'SPLIT'
-                              ? 'text-blue-700 font-bold'
-                              : 'text-slate-900'
+                              ? 'text-blue-600 dark:text-blue-450 font-bold'
+                              : 'text-slate-900 dark:text-white'
                           }`}>
                             {tx.type}
                           </span>
                           {tx.isUncertain && (
-                            <span className="text-[8px] font-semibold text-amber-600 bg-amber-50 px-1 rounded">
+                            <span className="text-[8px] font-semibold text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-950/30 px-1 rounded">
                               Est.
                             </span>
                           )}
                         </div>
-                        <div className="text-[10px] text-slate-500">{tx.date}</div>
+                        <div className="text-[10px] text-slate-550 dark:text-slate-400">{tx.date}</div>
                       </div>
                       <div className="text-right">
-                        <div className="font-medium text-slate-900">
+                        <div className="font-medium text-slate-900 dark:text-white">
                           {tx.type === 'SPLIT' ? `Ratio ${tx.shares}` : `${tx.shares} shs`}
                         </div>
-                        <div className="text-xs text-slate-500">
+                        <div className="text-xs text-slate-500 dark:text-slate-400">
                           {tx.type === 'INHERIT' 
                             ? 'Inherited' 
                             : tx.type === 'SPLIT' 
@@ -325,18 +325,18 @@ export const HoldingDetail = () => {
           )}
 
           {/* Card 2: Market Profile & Fundamentals (Collapsible Widget) */}
-          <Card className="overflow-hidden border border-slate-200">
+          <Card className="overflow-hidden border border-slate-200 dark:border-slate-800">
             <div
               onClick={() => setIsMarketExpanded(prev => !prev)}
-              className="w-full p-4 flex justify-between items-center bg-white hover:bg-slate-50/40 transition-colors text-left cursor-pointer"
+              className="w-full p-4 flex justify-between items-center bg-white dark:bg-slate-900 hover:bg-slate-50/40 dark:hover:bg-slate-800/40 transition-colors text-left cursor-pointer"
             >
               <div>
-                <span className="font-bold text-sm text-slate-900">Market Profile & Fundamentals</span>
+                <span className="font-bold text-sm text-slate-900 dark:text-white">Market Profile & Fundamentals</span>
                 <p className="text-[11px] text-slate-400 mt-0.5">{security.companyName} • {exInfo.exchangeName}</p>
               </div>
               <div className="flex items-center space-x-3 shrink-0">
                 <div className="text-right">
-                  <div className="font-extrabold text-sm text-slate-900">
+                  <div className="font-extrabold text-sm text-slate-900 dark:text-white">
                     {lastPrice > 0 ? formatMoney(lastPrice, exInfo.currency) : 'No Price'}
                   </div>
                   {lastPrice > 0 && (
@@ -351,7 +351,7 @@ export const HoldingDetail = () => {
                     e.stopPropagation();
                     toggleWatchlist(security.id);
                   }}
-                  className={`p-1.5 hover:bg-slate-100 rounded-lg transition-colors cursor-pointer ${isWatched ? 'text-rose-500' : 'text-slate-400 hover:text-rose-500'}`}
+                  className={`p-1.5 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-colors cursor-pointer ${isWatched ? 'text-rose-500' : 'text-slate-400 hover:text-rose-500'}`}
                   title={isWatched ? "Remove from Watchlist" : "Add to Watchlist"}
                 >
                   <Heart className={`w-4 h-4 ${isWatched ? 'fill-rose-500 text-rose-500' : ''}`} />
@@ -365,47 +365,51 @@ export const HoldingDetail = () => {
             </div>
 
             {isMarketExpanded && (
-              <div className="border-t border-slate-100 bg-white">
+              <div className="border-t border-slate-100 dark:border-slate-800 bg-white dark:bg-slate-900">
                 {/* 2.1 Metadata Details */}
-                <div className="p-4 bg-slate-50/50 space-y-3 border-b border-slate-100">
+                <div className="p-4 bg-slate-50/50 dark:bg-slate-950/20 space-y-3 border-b border-slate-100 dark:border-slate-800">
                   <div className="flex justify-between items-center text-xs">
-                    <span className="text-slate-500">Country</span>
-                    <span className="font-medium text-slate-900">{exInfo.country}</span>
+                    <span className="text-slate-500 dark:text-slate-400">Country</span>
+                    <span className="font-medium text-slate-900 dark:text-slate-100">{exInfo.country}</span>
                   </div>
                   <div className="flex justify-between items-center text-xs">
-                    <span className="text-slate-500">Sector</span>
-                    <span className="font-medium text-slate-900">{security.sector}</span>
+                    <span className="text-slate-500 dark:text-slate-400">Sector</span>
+                    <span className="font-medium text-slate-900 dark:text-slate-100">{security.sector}</span>
                   </div>
                   <div className="flex justify-between items-center text-xs">
-                    <span className="text-slate-500">Currency</span>
-                    <span className="font-semibold text-slate-900">{exInfo.currency}</span>
+                    <span className="text-slate-500 dark:text-slate-400">Currency</span>
+                    <span className="font-semibold text-slate-900 dark:text-slate-100">{exInfo.currency}</span>
                   </div>
                 </div>
 
                 {/* 2.2 Latest Research Synopsis (if any) */}
                 {latestNote && (
-                  <div className="p-4 border-b border-slate-100">
-                    <div className="bg-blue-50/50 border border-blue-100 rounded-xl p-3 text-xs text-slate-700 leading-normal">
-                      <div className="font-semibold text-blue-800 mb-1 flex items-center">
+                  <div className="p-4 border-b border-slate-100 dark:border-slate-800">
+                    <div className="bg-blue-50/50 dark:bg-blue-950/20 border border-blue-100 dark:border-blue-900/50 rounded-xl p-3 text-xs text-slate-700 dark:text-slate-300 leading-normal">
+                      <div className="font-semibold text-blue-800 dark:text-blue-400 mb-1 flex items-center">
                         <Info className="w-3.5 h-3.5 mr-1" />
                         Latest Synopsis ({latestNote.date})
                       </div>
-                      <div className="font-medium text-slate-900 mb-1">{latestNote.title}</div>
-                      <p className="text-slate-600">{latestNote.synopsis}</p>
+                      <div className="font-medium text-slate-900 dark:text-slate-100 mb-1">{latestNote.title}</div>
+                      <p className="text-slate-650 dark:text-slate-400">{latestNote.synopsis}</p>
                     </div>
                   </div>
                 )}
 
                 {/* 2.3 Interactive Pricing Line Chart (Only mounted when expanded) */}
-                <div className="p-4 border-b border-slate-100 space-y-4">
+                <div className="p-4 border-b border-slate-100 dark:border-slate-800 space-y-4">
                   <div className="flex justify-between items-center">
-                    <span className="text-xs font-bold text-slate-400 uppercase tracking-widest">Price History</span>
-                    <div className="flex bg-slate-100 rounded-lg p-0.5 space-x-1">
+                    <span className="text-xs font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest">Price History</span>
+                    <div className="flex bg-slate-100 dark:bg-slate-800 rounded-lg p-0.5 space-x-1">
                       {(['1M', '3M', '6M', '1Y'] as const).map(range => (
                         <button
                           key={range}
                           onClick={() => setChartRange(range)}
-                          className={`px-2 py-1 text-[10px] font-medium rounded-md transition-colors cursor-pointer ${chartRange === range ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
+                          className={`px-2 py-1 text-[10px] font-medium rounded-md transition-colors cursor-pointer ${
+                            chartRange === range 
+                              ? 'bg-white dark:bg-slate-700 text-slate-900 dark:text-white shadow-sm' 
+                              : 'text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200'
+                          }`}
                         >
                           {range}
                         </button>
@@ -413,16 +417,21 @@ export const HoldingDetail = () => {
                     </div>
                   </div>
 
-                  <div className="h-48 w-full bg-white">
+                  <div className="h-48 w-full bg-white dark:bg-slate-900">
                     <ResponsiveContainer width="100%" height="100%">
                       <LineChart data={priceHistory} margin={{ top: 5, right: 0, left: -20, bottom: 0 }}>
-                        <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" />
-                        <XAxis dataKey="date" axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: '#64748b' }} dy={10} minTickGap={15} />
-                        <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: '#64748b' }} domain={['auto', 'auto']} tickFormatter={(val) => val.toFixed(0)} />
+                        <CartesianGrid strokeDasharray="3 3" vertical={false} stroke={theme === 'dark' ? '#334155' : '#e2e8f0'} />
+                        <XAxis dataKey="date" axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: theme === 'dark' ? '#94a3b8' : '#64748b' }} dy={10} minTickGap={15} />
+                        <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: theme === 'dark' ? '#94a3b8' : '#64748b' }} domain={['auto', 'auto']} tickFormatter={(val) => val.toFixed(0)} />
                         <Tooltip 
-                          contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }}
-                          labelStyle={{ fontSize: '12px', color: '#64748b', marginBottom: '4px' }}
-                          itemStyle={{ fontSize: '14px', fontWeight: 'bold', color: '#0f172a' }}
+                          contentStyle={{ 
+                            borderRadius: '8px', 
+                            border: 'none', 
+                            boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)',
+                            backgroundColor: theme === 'dark' ? '#1e293b' : '#ffffff'
+                          }}
+                          labelStyle={{ fontSize: '12px', color: theme === 'dark' ? '#94a3b8' : '#64748b', marginBottom: '4px' }}
+                          itemStyle={{ fontSize: '14px', fontWeight: 'bold', color: theme === 'dark' ? '#ffffff' : '#0f172a' }}
                           formatter={(value: number) => [`${exInfo.currency} ${value.toFixed(2)}`, 'Price']}
                         />
                         <Line type="monotone" dataKey="price" stroke="#2563eb" strokeWidth={2} dot={{ r: 3, fill: '#2563eb', strokeWidth: 0 }} activeDot={{ r: 5 }} />
@@ -434,33 +443,33 @@ export const HoldingDetail = () => {
                 {/* 2.4 Fundamentals */}
                 {fundamentals && (
                   <div className="p-4 space-y-3">
-                    <div className="flex justify-between items-center border-b border-slate-100 pb-2">
-                      <span className="text-xs font-bold text-slate-400 uppercase tracking-widest">Fundamentals & Metrics</span>
-                      <span className="text-[9px] text-blue-600 bg-blue-50 border border-blue-100 px-2 py-0.5 rounded uppercase font-bold">
+                    <div className="flex justify-between items-center border-b border-slate-100 dark:border-slate-800 pb-2">
+                      <span className="text-xs font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest">Fundamentals & Metrics</span>
+                      <span className="text-[9px] text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-950/30 border border-blue-100 dark:border-blue-900/50 px-2 py-0.5 rounded uppercase font-bold">
                         {latestNote ? 'From note synopsis' : `As of ${fundamentals.lastUpdated || 'Unknown'}`}
                       </span>
                     </div>
 
-                    <div className="divide-y divide-slate-100 text-sm">
+                    <div className="divide-y divide-slate-100 dark:divide-slate-800 text-sm">
                       <div className="py-2.5 flex justify-between">
-                        <span className="text-slate-500">P/E Ratio</span>
-                        <span className="font-medium text-slate-900">{fundamentals.peRatio?.toFixed(1) || 'N/A'}</span>
+                        <span className="text-slate-500 dark:text-slate-400">P/E Ratio</span>
+                        <span className="font-medium text-slate-900 dark:text-slate-100">{fundamentals.peRatio?.toFixed(1) || 'N/A'}</span>
                       </div>
                       <div className="py-2.5 flex justify-between">
-                        <span className="text-slate-500">EPS</span>
-                        <span className="font-medium text-slate-900">{fundamentals.eps ? formatMoney(fundamentals.eps, exInfo.currency) : 'N/A'}</span>
+                        <span className="text-slate-500 dark:text-slate-400">EPS</span>
+                        <span className="font-medium text-slate-900 dark:text-slate-100">{fundamentals.eps ? formatMoney(fundamentals.eps, exInfo.currency) : 'N/A'}</span>
                       </div>
                       <div className="py-2.5 flex justify-between">
-                        <span className="text-slate-500">Div. Yield</span>
-                        <span className="font-medium text-slate-900">{fundamentals.dividendYield ? `${fundamentals.dividendYield.toFixed(1)}%` : 'N/A'}</span>
+                        <span className="text-slate-500 dark:text-slate-400">Div. Yield</span>
+                        <span className="font-medium text-slate-900 dark:text-slate-100">{fundamentals.dividendYield ? `${fundamentals.dividendYield.toFixed(1)}%` : 'N/A'}</span>
                       </div>
                       <div className="py-2.5 flex justify-between">
-                        <span className="text-slate-500">P/B Ratio</span>
-                        <span className="font-medium text-slate-900">{fundamentals.pbRatio?.toFixed(1) || 'N/A'}</span>
+                        <span className="text-slate-500 dark:text-slate-400">P/B Ratio</span>
+                        <span className="font-medium text-slate-900 dark:text-slate-100">{fundamentals.pbRatio?.toFixed(1) || 'N/A'}</span>
                       </div>
                       <div className="py-2.5 flex justify-between">
-                        <span className="text-slate-500">ROE</span>
-                        <span className="font-medium text-slate-900">{fundamentals.roe ? `${fundamentals.roe.toFixed(1)}%` : 'N/A'}</span>
+                        <span className="text-slate-500 dark:text-slate-400">ROE</span>
+                        <span className="font-medium text-slate-900 dark:text-slate-100">{fundamentals.roe ? `${fundamentals.roe.toFixed(1)}%` : 'N/A'}</span>
                       </div>
                     </div>
                   </div>
@@ -482,77 +491,77 @@ export const HoldingDetail = () => {
               <PlusCircle className="w-4 h-4 mr-2" /> Log Business Note
             </button>
           ) : (
-            <Card className="bg-slate-50 border-blue-200">
+            <Card className="bg-slate-50/50 dark:bg-slate-950/40 border-blue-200 dark:border-blue-900/50">
               <CardHeader title="Write Research Synopsis" />
               <CardContent className="p-4">
                 <form onSubmit={handleAddNote} className="space-y-3">
                   <div>
-                    <label className="block text-xs text-slate-500 mb-1">Title</label>
+                    <label className="block text-xs text-slate-500 dark:text-slate-400 mb-1">Title</label>
                     <input 
                       type="text" 
                       required 
                       placeholder="e.g. Q4 Revenue surge & board restructuring" 
                       value={noteTitle} 
                       onChange={e => setNoteTitle(e.target.value)} 
-                      className="w-full text-sm border border-slate-300 rounded p-1.5 focus:ring-2 focus:ring-blue-500 focus:outline-none bg-white" 
+                      className="w-full text-sm border border-slate-300 dark:border-slate-800 rounded p-1.5 focus:ring-2 focus:ring-blue-500 focus:outline-none bg-white dark:bg-slate-900 text-slate-900 dark:text-white" 
                     />
                   </div>
                   <div className="grid grid-cols-2 gap-3">
                     <div>
-                      <label className="block text-xs text-slate-500 mb-1">Date</label>
+                      <label className="block text-xs text-slate-500 dark:text-slate-400 mb-1">Date</label>
                       <input 
                         type="date" 
                         required 
                         value={noteDate} 
                         onChange={e => setNoteDate(e.target.value)} 
-                        className="w-full text-sm border border-slate-300 rounded p-1.5 focus:ring-2 focus:ring-blue-500 focus:outline-none bg-white" 
+                        className="w-full text-sm border border-slate-300 dark:border-slate-800 rounded p-1.5 focus:ring-2 focus:ring-blue-500 focus:outline-none bg-white dark:bg-slate-900 text-slate-900 dark:text-white" 
                       />
                     </div>
                     <div>
-                      <label className="block text-xs text-slate-500 mb-1">P/E Ratio (Optional)</label>
+                      <label className="block text-xs text-slate-500 dark:text-slate-400 mb-1">P/E Ratio (Optional)</label>
                       <input 
                         type="number" 
                         step="0.01" 
                         value={notePe} 
                         onChange={e => setNotePe(e.target.value)} 
-                        className="w-full text-sm border border-slate-300 rounded p-1.5 focus:ring-2 focus:ring-blue-500 focus:outline-none bg-white" 
+                        className="w-full text-sm border border-slate-300 dark:border-slate-800 rounded p-1.5 focus:ring-2 focus:ring-blue-500 focus:outline-none bg-white dark:bg-slate-900 text-slate-900 dark:text-white" 
                       />
                     </div>
                   </div>
 
                   <div>
-                    <label className="block text-xs text-slate-500 mb-1">Synopsis (Acquisitions, Mergers, Leadership Changes, Buildings, etc.)</label>
+                    <label className="block text-xs text-slate-500 dark:text-slate-400 mb-1">Synopsis (Acquisitions, Mergers, Leadership Changes, Buildings, etc.)</label>
                     <textarea 
                       required
                       rows={4}
                       placeholder="Enter detailed corporate synopsis..."
                       value={noteSynopsis}
                       onChange={e => setNoteSynopsis(e.target.value)}
-                      className="w-full text-sm border border-slate-300 rounded p-2 focus:ring-2 focus:ring-blue-500 focus:outline-none bg-white"
+                      className="w-full text-sm border border-slate-300 dark:border-slate-800 rounded p-2 focus:ring-2 focus:ring-blue-500 focus:outline-none bg-white dark:bg-slate-900 text-slate-900 dark:text-white"
                     />
                   </div>
 
-                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 bg-white p-3 rounded-lg border border-slate-200">
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 bg-white dark:bg-slate-900 p-3 rounded-lg border border-slate-200 dark:border-slate-800">
                     <div>
-                      <label className="block text-[10px] text-slate-400 mb-1">EPS ({exInfo.currency})</label>
-                      <input type="number" step="0.01" value={noteEps} onChange={e => setNoteEps(e.target.value)} className="w-full text-xs border border-slate-300 rounded p-1 focus:ring-blue-500 focus:outline-none bg-white" />
+                      <label className="block text-[10px] text-slate-450 dark:text-slate-500 mb-1">EPS ({exInfo.currency})</label>
+                      <input type="number" step="0.01" value={noteEps} onChange={e => setNoteEps(e.target.value)} className="w-full text-xs border border-slate-300 dark:border-slate-800 rounded p-1 focus:ring-blue-500 focus:outline-none bg-white dark:bg-slate-950 text-slate-900 dark:text-white" />
                     </div>
                     <div>
-                      <label className="block text-[10px] text-slate-400 mb-1">Div Yield (%)</label>
-                      <input type="number" step="0.01" value={noteDivYield} onChange={e => setNoteDivYield(e.target.value)} className="w-full text-xs border border-slate-300 rounded p-1 focus:ring-blue-500 focus:outline-none bg-white" />
+                      <label className="block text-[10px] text-slate-450 dark:text-slate-500 mb-1">Div Yield (%)</label>
+                      <input type="number" step="0.01" value={noteDivYield} onChange={e => setNoteDivYield(e.target.value)} className="w-full text-xs border border-slate-300 dark:border-slate-800 rounded p-1 focus:ring-blue-500 focus:outline-none bg-white dark:bg-slate-950 text-slate-900 dark:text-white" />
                     </div>
                     <div>
-                      <label className="block text-[10px] text-slate-400 mb-1">P/B Ratio</label>
-                      <input type="number" step="0.01" value={notePb} onChange={e => setNotePb(e.target.value)} className="w-full text-xs border border-slate-300 rounded p-1 focus:ring-blue-500 focus:outline-none bg-white" />
+                      <label className="block text-[10px] text-slate-455 dark:text-slate-500 mb-1">P/B Ratio</label>
+                      <input type="number" step="0.01" value={notePb} onChange={e => setNotePb(e.target.value)} className="w-full text-xs border border-slate-300 dark:border-slate-800 rounded p-1 focus:ring-blue-500 focus:outline-none bg-white dark:bg-slate-950 text-slate-900 dark:text-white" />
                     </div>
                     <div>
-                      <label className="block text-[10px] text-slate-400 mb-1">ROE (%)</label>
-                      <input type="number" step="0.01" value={noteRoe} onChange={e => setNoteRoe(e.target.value)} className="w-full text-xs border border-slate-300 rounded p-1 focus:ring-blue-500 focus:outline-none bg-white" />
+                      <label className="block text-[10px] text-slate-455 dark:text-slate-500 mb-1">ROE (%)</label>
+                      <input type="number" step="0.01" value={noteRoe} onChange={e => setNoteRoe(e.target.value)} className="w-full text-xs border border-slate-300 dark:border-slate-800 rounded p-1 focus:ring-blue-500 focus:outline-none bg-white dark:bg-slate-950 text-slate-900 dark:text-white" />
                     </div>
                   </div>
 
                   <div className="flex justify-end space-x-2 pt-2">
-                    <button type="button" onClick={() => setShowAddNoteForm(false)} className="px-3 py-1.5 text-xs text-slate-600 hover:bg-slate-100 rounded cursor-pointer">Cancel</button>
+                    <button type="button" onClick={() => setShowAddNoteForm(false)} className="px-3 py-1.5 text-xs text-slate-650 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 rounded cursor-pointer">Cancel</button>
                     <button type="submit" className="px-3 py-1.5 text-xs bg-blue-600 hover:bg-blue-700 text-white rounded font-semibold transition-colors cursor-pointer">Save Synopsis</button>
                   </div>
                 </form>
@@ -563,29 +572,29 @@ export const HoldingDetail = () => {
           {/* List of logged corporate notes */}
           <div className="space-y-4">
             {notes.length === 0 ? (
-              <div className="text-center text-slate-500 py-8">
+              <div className="text-center text-slate-500 dark:text-slate-400 py-8">
                 No notes logged for this security.
               </div>
             ) : (
               notes.map(note => (
                 <Card key={note.id}>
                   <CardContent className="p-4 space-y-3">
-                    <div className="flex justify-between items-start border-b border-slate-100 pb-2">
+                    <div className="flex justify-between items-start border-b border-slate-100 dark:border-slate-800 pb-2">
                       <div>
-                        <h4 className="font-bold text-slate-900 text-sm">{note.title}</h4>
-                        <span className="text-[10px] text-slate-400">{note.date}</span>
+                        <h4 className="font-bold text-slate-900 dark:text-white text-sm">{note.title}</h4>
+                        <span className="text-[10px] text-slate-400 dark:text-slate-500">{note.date}</span>
                       </div>
                       <Badge variant="blue">Synopsis</Badge>
                     </div>
-                    <p className="text-xs text-slate-600 leading-relaxed font-normal whitespace-pre-wrap">{note.synopsis}</p>
+                    <p className="text-xs text-slate-600 dark:text-slate-300 leading-relaxed font-normal whitespace-pre-wrap">{note.synopsis}</p>
                     
                     {(note.peRatio || note.eps || note.dividendYield || note.pbRatio || note.roe) && (
-                      <div className="bg-slate-50 p-2 rounded-lg border border-slate-100 text-[10px] text-slate-500 grid grid-cols-3 sm:grid-cols-5 gap-2">
-                        {note.peRatio && <div>P/E: <span className="font-semibold text-slate-800">{note.peRatio.toFixed(1)}</span></div>}
-                        {note.eps && <div>EPS: <span className="font-semibold text-slate-800">{formatMoney(note.eps, exInfo.currency)}</span></div>}
-                        {note.dividendYield && <div>Yield: <span className="font-semibold text-slate-800">{note.dividendYield.toFixed(1)}%</span></div>}
-                        {note.pbRatio && <div>P/B: <span className="font-semibold text-slate-800">{note.pbRatio.toFixed(1)}</span></div>}
-                        {note.roe && <div>ROE: <span className="font-semibold text-slate-800">{note.roe.toFixed(1)}%</span></div>}
+                      <div className="bg-slate-50 dark:bg-slate-950 p-2 rounded-lg border border-slate-100 dark:border-slate-800 text-[10px] text-slate-500 dark:text-slate-400 grid grid-cols-3 sm:grid-cols-5 gap-2">
+                        {note.peRatio && <div>P/E: <span className="font-semibold text-slate-800 dark:text-slate-200">{note.peRatio.toFixed(1)}</span></div>}
+                        {note.eps && <div>EPS: <span className="font-semibold text-slate-800 dark:text-slate-200">{formatMoney(note.eps, exInfo.currency)}</span></div>}
+                        {note.dividendYield && <div>Yield: <span className="font-semibold text-slate-800 dark:text-slate-200">{note.dividendYield.toFixed(1)}%</span></div>}
+                        {note.pbRatio && <div>P/B: <span className="font-semibold text-slate-800 dark:text-slate-200">{note.pbRatio.toFixed(1)}</span></div>}
+                        {note.roe && <div>ROE: <span className="font-semibold text-slate-800 dark:text-slate-200">{note.roe.toFixed(1)}%</span></div>}
                       </div>
                     )}
                   </CardContent>

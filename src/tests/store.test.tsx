@@ -26,6 +26,7 @@ const StoreConsumer = () => {
       <div data-testid="tx-count">Transactions: {store.transactions.length}</div>
       <div data-testid="securities-count">Securities: {store.securities.length}</div>
       <div data-testid="watchlist-count">Watchlist: {store.watchlist.length}</div>
+      <div data-testid="theme-val">Theme: {store.theme}</div>
       
       <button 
         onClick={() => store.addTransaction({
@@ -61,6 +62,13 @@ const StoreConsumer = () => {
       >
         Add Note
       </button>
+
+      <button
+        onClick={() => store.setTheme(store.theme === 'light' ? 'dark' : 'light')}
+        data-testid="toggle-theme-btn"
+      >
+        Toggle Theme
+      </button>
     </div>
   );
 };
@@ -69,6 +77,7 @@ describe('global state store tests', () => {
   beforeEach(() => {
     localStorage.clear();
     localStorage.setItem('harbour_auth_mode', 'offline');
+    document.documentElement.classList.remove('dark');
   });
 
   it('should initialize store with loaded mock datasets', async () => {
@@ -124,5 +133,45 @@ describe('global state store tests', () => {
 
     // Check watchlist updates
     expect(screen.getByTestId('watchlist-count')).toHaveTextContent(/Watchlist: \d+/);
+  });
+
+  it('should toggle theme and update document element classes and localStorage', async () => {
+    render(
+      <StoreProvider user={mockUser}>
+        <StoreConsumer />
+      </StoreProvider>
+    );
+
+    await act(async () => {
+      await new Promise(resolve => setTimeout(resolve, 50));
+    });
+
+    // Check initial theme state
+    const themeVal = screen.getByTestId('theme-val');
+    expect(themeVal).toHaveTextContent(/Theme: (light|dark)/);
+    
+    const initialTheme = themeVal.textContent?.replace('Theme: ', '') as 'light' | 'dark';
+    const expectedToggledTheme = initialTheme === 'light' ? 'dark' : 'light';
+
+    const toggleThemeBtn = screen.getByTestId('toggle-theme-btn');
+    
+    // Toggle the theme
+    await act(async () => {
+      fireEvent.click(toggleThemeBtn);
+      await new Promise(resolve => setTimeout(resolve, 50));
+    });
+
+    // Theme state in store should update
+    expect(themeVal).toHaveTextContent(`Theme: ${expectedToggledTheme}`);
+
+    // Class list on document element should be updated
+    if (expectedToggledTheme === 'dark') {
+      expect(document.documentElement.classList.contains('dark')).toBe(true);
+    } else {
+      expect(document.documentElement.classList.contains('dark')).toBe(false);
+    }
+
+    // LocalStorage should persist the preferred theme
+    expect(localStorage.getItem('harbour_theme')).toBe(expectedToggledTheme);
   });
 });

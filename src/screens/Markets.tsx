@@ -14,7 +14,8 @@ export const Markets = () => {
     exchanges,
     equityNotes,
     watchlist, 
-    toggleWatchlist 
+    toggleWatchlist,
+    theme
   } = useStore();
 
   const [selectedExchange, setSelectedExchange] = useState<'ALL' | 'GASCI' | 'BSE' | 'JSE' | 'TTSE'>('ALL');
@@ -302,8 +303,8 @@ export const Markets = () => {
     <div className="space-y-4 pb-6">
       {/* Page Header */}
       <div>
-        <h2 className="text-xl font-bold text-slate-900 tracking-tight">Markets</h2>
-        <p className="text-xs text-slate-500">Live indices, daily price changes, and corporate synopses across Caribbean exchanges.</p>
+        <h2 className="text-xl font-bold text-slate-900 dark:text-white tracking-tight">Markets</h2>
+        <p className="text-xs text-slate-500 dark:text-slate-400">Live indices, daily price changes, and corporate synopses across Caribbean exchanges.</p>
       </div>
 
       {/* Search Bar */}
@@ -313,7 +314,7 @@ export const Markets = () => {
           <input
             type="text"
             placeholder="Search all equities across exchanges..."
-            className="w-full pl-9 pr-4 py-2 bg-white border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="w-full pl-9 pr-4 py-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 text-slate-900 dark:text-white"
             value={searchQuery}
             onChange={(e) => {
               setSearchQuery(e.target.value);
@@ -341,20 +342,20 @@ export const Markets = () => {
               className="fixed inset-0 z-40 bg-transparent" 
               onClick={() => setShowDropdown(false)} 
             />
-            <div className="absolute z-50 left-0 right-0 mt-1 bg-white border border-slate-200 rounded-xl shadow-lg max-h-60 overflow-y-auto divide-y divide-slate-100">
+            <div className="absolute z-50 left-0 right-0 mt-1 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl shadow-lg max-h-60 overflow-y-auto divide-y divide-slate-100 dark:divide-slate-800">
               {searchResults.map((sec) => (
                 <button
-                  key={sec.id}
-                  onClick={() => {
-                    setSelectedSecurity(sec);
-                    setSearchQuery('');
-                    setShowDropdown(false);
-                  }}
-                  className="w-full px-4 py-3 flex justify-between items-center hover:bg-slate-50 text-left transition-colors cursor-pointer"
+                   key={sec.id}
+                   onClick={() => {
+                     setSelectedSecurity(sec);
+                     setSearchQuery('');
+                     setShowDropdown(false);
+                   }}
+                   className="w-full px-4 py-3 flex justify-between items-center hover:bg-slate-50 dark:hover:bg-slate-800 text-left transition-colors cursor-pointer"
                 >
                   <div>
-                    <div className="font-extrabold text-sm text-slate-900">{sec.ticker}</div>
-                    <div className="text-xs text-slate-450 truncate max-w-[200px] sm:max-w-xs">{sec.companyName}</div>
+                    <div className="font-extrabold text-sm text-slate-900 dark:text-white">{sec.ticker}</div>
+                    <div className="text-xs text-slate-500 dark:text-slate-400 truncate max-w-[200px] sm:max-w-xs">{sec.companyName}</div>
                   </div>
                   <Badge variant={sec.exchangeId === 'GASCI' ? 'blue' : 'yellow'}>{sec.exchangeId}</Badge>
                 </button>
@@ -366,33 +367,33 @@ export const Markets = () => {
 
       {selectedSecurity ? (
         <div className="space-y-4">
-          <Card className="overflow-hidden border border-slate-200">
-            <div className="w-full p-4 flex justify-between items-center bg-white border-b border-slate-100">
+          <Card className="overflow-hidden border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 transition-colors duration-300">
+            <div className="w-full p-4 flex justify-between items-center bg-white dark:bg-slate-900 border-b border-slate-100 dark:border-slate-800">
               <div>
-                <span className="font-bold text-sm text-slate-900">Market Profile & Fundamentals</span>
-                <p className="text-[11px] text-slate-400 mt-0.5">{selectedSecurity.companyName} • {selectedExInfo?.exchangeName}</p>
+                <span className="font-bold text-sm text-slate-900 dark:text-white">Market Profile & Fundamentals</span>
+                <p className="text-[11px] text-slate-400 dark:text-slate-500 mt-0.5">{selectedSecurity.companyName} • {selectedExInfo?.exchangeName}</p>
               </div>
               <div className="flex items-center space-x-3 shrink-0">
                 <div className="text-right">
-                  <div className="font-extrabold text-sm text-slate-900">
+                  <div className="font-extrabold text-sm text-slate-900 dark:text-white">
                     {selectedLastPrice > 0 ? formatMoney(selectedLastPrice, selectedExInfo?.currency || 'USD') : 'No Price'}
                   </div>
                   {selectedLastPrice > 0 && (
-                    <div className={`text-[10px] font-bold ${selectedChangePct >= 0 ? 'text-emerald-600' : 'text-rose-600'}`}>
+                    <div className={`text-[10px] font-bold ${selectedChangePct >= 0 ? 'text-emerald-650 dark:text-emerald-450' : 'text-rose-650 dark:text-rose-455'}`}>
                       {selectedChangePct >= 0 ? '+' : ''}{selectedChangePct.toFixed(2)}%
                     </div>
                   )}
                 </div>
                 <button
                   onClick={() => toggleWatchlist(selectedSecurity.id)}
-                  className={`p-1.5 hover:bg-slate-100 rounded-lg transition-colors cursor-pointer ${watchlist.includes(selectedSecurity.id) ? 'text-rose-500' : 'text-slate-400 hover:text-rose-500'}`}
+                  className={`p-1.5 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-colors cursor-pointer ${watchlist.includes(selectedSecurity.id) ? 'text-rose-500' : 'text-slate-400 dark:text-slate-500 hover:text-rose-500 dark:hover:text-rose-400'}`}
                   title={watchlist.includes(selectedSecurity.id) ? "Remove from Watchlist" : "Add to Watchlist"}
                 >
                   <Heart className={`w-4 h-4 ${watchlist.includes(selectedSecurity.id) ? 'fill-rose-500 text-rose-500' : ''}`} />
                 </button>
                 <button
                   onClick={() => setSelectedSecurity(null)}
-                  className="p-1.5 hover:bg-slate-100 rounded-full transition-colors cursor-pointer text-slate-400 hover:text-slate-650"
+                  className="p-1.5 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-full transition-colors cursor-pointer text-slate-400 dark:text-slate-500 hover:text-slate-650 dark:hover:text-slate-300"
                   title="Close profile"
                 >
                   <X className="w-5 h-5" />
@@ -400,47 +401,47 @@ export const Markets = () => {
               </div>
             </div>
 
-            <div className="bg-white">
+            <div className="bg-white dark:bg-slate-900">
               {/* 2.1 Metadata Details */}
-              <div className="p-4 bg-slate-50/50 space-y-3 border-b border-slate-100">
+              <div className="p-4 bg-slate-50/50 dark:bg-slate-950/20 space-y-3 border-b border-slate-100 dark:border-slate-800">
                 <div className="flex justify-between items-center text-xs">
-                  <span className="text-slate-500">Country</span>
-                  <span className="font-medium text-slate-900">{selectedExInfo?.country}</span>
+                  <span className="text-slate-500 dark:text-slate-400">Country</span>
+                  <span className="font-medium text-slate-900 dark:text-white">{selectedExInfo?.country}</span>
                 </div>
                 <div className="flex justify-between items-center text-xs">
-                  <span className="text-slate-500">Sector</span>
-                  <span className="font-medium text-slate-900">{selectedSecurity.sector}</span>
+                  <span className="text-slate-500 dark:text-slate-400">Sector</span>
+                  <span className="font-medium text-slate-900 dark:text-white">{selectedSecurity.sector}</span>
                 </div>
                 <div className="flex justify-between items-center text-xs">
-                  <span className="text-slate-500">Currency</span>
-                  <span className="font-semibold text-slate-900">{selectedExInfo?.currency}</span>
+                  <span className="text-slate-500 dark:text-slate-400">Currency</span>
+                  <span className="font-semibold text-slate-900 dark:text-white">{selectedExInfo?.currency}</span>
                 </div>
               </div>
 
               {/* 2.2 Latest Research Synopsis (if any) */}
               {selectedLatestNote && (
-                <div className="p-4 border-b border-slate-100">
-                  <div className="bg-blue-50/50 border border-blue-100 rounded-xl p-3 text-xs text-slate-700 leading-normal">
-                    <div className="font-semibold text-blue-800 mb-1 flex items-center">
+                <div className="p-4 border-b border-slate-100 dark:border-slate-800">
+                  <div className="bg-blue-50/50 dark:bg-blue-950/20 border border-blue-100 dark:border-blue-900/40 rounded-xl p-3 text-xs text-slate-700 dark:text-slate-300 leading-normal">
+                    <div className="font-semibold text-blue-800 dark:text-blue-450 mb-1 flex items-center">
                       <Info className="w-3.5 h-3.5 mr-1" />
                       Latest Synopsis ({selectedLatestNote.date})
                     </div>
-                    <div className="font-medium text-slate-900 mb-1">{selectedLatestNote.title}</div>
-                    <p className="text-slate-600">{selectedLatestNote.synopsis}</p>
+                    <div className="font-medium text-slate-900 dark:text-white mb-1">{selectedLatestNote.title}</div>
+                    <p className="text-slate-600 dark:text-slate-400">{selectedLatestNote.synopsis}</p>
                   </div>
                 </div>
               )}
 
               {/* 2.3 Interactive Pricing Line Chart */}
-              <div className="p-4 border-b border-slate-100 space-y-4">
+              <div className="p-4 border-b border-slate-100 dark:border-slate-800 space-y-4">
                 <div className="flex justify-between items-center">
-                  <span className="text-xs font-bold text-slate-400 uppercase tracking-widest">Price History</span>
-                  <div className="flex bg-slate-100 rounded-lg p-0.5 space-x-1">
+                  <span className="text-xs font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest">Price History</span>
+                  <div className="flex bg-slate-100 dark:bg-slate-800 rounded-lg p-0.5 space-x-1">
                     {(['1M', '3M', '6M', '1Y'] as const).map(range => (
                       <button
                         key={range}
                         onClick={() => setChartRange(range)}
-                        className={`px-2 py-1 text-[10px] font-medium rounded-md transition-colors cursor-pointer ${chartRange === range ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
+                        className={`px-2 py-1 text-[10px] font-medium rounded-md transition-colors cursor-pointer ${chartRange === range ? 'bg-white dark:bg-slate-900 text-slate-900 dark:text-white shadow-sm' : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200'}`}
                       >
                         {range}
                       </button>
@@ -448,16 +449,16 @@ export const Markets = () => {
                   </div>
                 </div>
 
-                <div className="h-48 w-full bg-white">
+                <div className="h-48 w-full bg-white dark:bg-slate-900">
                   <ResponsiveContainer width="100%" height="100%">
                     <LineChart data={selectedPriceHistory} margin={{ top: 5, right: 0, left: -20, bottom: 0 }}>
-                      <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" />
-                      <XAxis dataKey="date" axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: '#64748b' }} dy={10} minTickGap={15} />
-                      <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: '#64748b' }} domain={['auto', 'auto']} tickFormatter={(val) => val.toFixed(0)} />
+                      <CartesianGrid strokeDasharray="3 3" vertical={false} stroke={theme === 'dark' ? '#334155' : '#e2e8f0'} />
+                      <XAxis dataKey="date" axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: theme === 'dark' ? '#94a3b8' : '#64748b' }} dy={10} minTickGap={15} />
+                      <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: theme === 'dark' ? '#94a3b8' : '#64748b' }} domain={['auto', 'auto']} tickFormatter={(val) => val.toFixed(0)} />
                       <Tooltip 
-                        contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }}
-                        labelStyle={{ fontSize: '12px', color: '#64748b', marginBottom: '4px' }}
-                        itemStyle={{ fontSize: '14px', fontWeight: 'bold', color: '#0f172a' }}
+                        contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)', backgroundColor: theme === 'dark' ? '#1e293b' : '#ffffff', color: theme === 'dark' ? '#f8fafc' : '#0f172a' }}
+                        labelStyle={{ fontSize: '12px', color: theme === 'dark' ? '#94a3b8' : '#64748b', marginBottom: '4px' }}
+                        itemStyle={{ fontSize: '14px', fontWeight: 'bold', color: theme === 'dark' ? '#f8fafc' : '#0f172a' }}
                         formatter={(value: number) => [`${selectedExInfo?.currency || 'USD'} ${value.toFixed(2)}`, 'Price']}
                       />
                       <Line type="monotone" dataKey="price" stroke="#2563eb" strokeWidth={2} dot={{ r: 3, fill: '#2563eb', strokeWidth: 0 }} activeDot={{ r: 5 }} />
@@ -469,33 +470,33 @@ export const Markets = () => {
               {/* 2.4 Fundamentals */}
               {selectedFundamentals && (
                 <div className="p-4 space-y-3">
-                  <div className="flex justify-between items-center border-b border-slate-100 pb-2">
-                    <span className="text-xs font-bold text-slate-400 uppercase tracking-widest">Fundamentals & Metrics</span>
-                    <span className="text-[9px] text-blue-600 bg-blue-50 border border-blue-100 px-2 py-0.5 rounded uppercase font-bold">
+                  <div className="flex justify-between items-center border-b border-slate-100 dark:border-slate-800 pb-2">
+                    <span className="text-xs font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest">Fundamentals & Metrics</span>
+                    <span className="text-[9px] text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-950/30 border border-blue-100 dark:border-blue-900/40 px-2 py-0.5 rounded uppercase font-bold">
                       {selectedLatestNote ? 'From note synopsis' : `As of ${selectedFundamentals.lastUpdated || 'Unknown'}`}
                     </span>
                   </div>
 
-                  <div className="divide-y divide-slate-100 text-sm">
+                  <div className="divide-y divide-slate-100 dark:divide-slate-800 text-sm">
                     <div className="py-2.5 flex justify-between">
-                      <span className="text-slate-500">P/E Ratio</span>
-                      <span className="font-medium text-slate-900">{selectedFundamentals.peRatio?.toFixed(1) || 'N/A'}</span>
+                      <span className="text-slate-500 dark:text-slate-400">P/E Ratio</span>
+                      <span className="font-medium text-slate-900 dark:text-white">{selectedFundamentals.peRatio?.toFixed(1) || 'N/A'}</span>
                     </div>
                     <div className="py-2.5 flex justify-between">
-                      <span className="text-slate-500">EPS</span>
-                      <span className="font-medium text-slate-900">{selectedFundamentals.eps ? formatMoney(selectedFundamentals.eps, selectedExInfo?.currency || 'USD') : 'N/A'}</span>
+                      <span className="text-slate-500 dark:text-slate-400">EPS</span>
+                      <span className="font-medium text-slate-900 dark:text-white">{selectedFundamentals.eps ? formatMoney(selectedFundamentals.eps, selectedExInfo?.currency || 'USD') : 'N/A'}</span>
                     </div>
                     <div className="py-2.5 flex justify-between">
-                      <span className="text-slate-500">Div. Yield</span>
-                      <span className="font-medium text-slate-900">{selectedFundamentals.dividendYield ? `${selectedFundamentals.dividendYield.toFixed(1)}%` : 'N/A'}</span>
+                      <span className="text-slate-500 dark:text-slate-400">Div. Yield</span>
+                      <span className="font-medium text-slate-900 dark:text-white">{selectedFundamentals.dividendYield ? `${selectedFundamentals.dividendYield.toFixed(1)}%` : 'N/A'}</span>
                     </div>
                     <div className="py-2.5 flex justify-between">
-                      <span className="text-slate-500">P/B Ratio</span>
-                      <span className="font-medium text-slate-900">{selectedFundamentals.pbRatio?.toFixed(1) || 'N/A'}</span>
+                      <span className="text-slate-500 dark:text-slate-400">P/B Ratio</span>
+                      <span className="font-medium text-slate-900 dark:text-white">{selectedFundamentals.pbRatio?.toFixed(1) || 'N/A'}</span>
                     </div>
                     <div className="py-2.5 flex justify-between">
-                      <span className="text-slate-500">ROE</span>
-                      <span className="font-medium text-slate-900">{selectedFundamentals.roe ? `${selectedFundamentals.roe.toFixed(1)}%` : 'N/A'}</span>
+                      <span className="text-slate-500 dark:text-slate-400">ROE</span>
+                      <span className="font-medium text-slate-900 dark:text-white">{selectedFundamentals.roe ? `${selectedFundamentals.roe.toFixed(1)}%` : 'N/A'}</span>
                     </div>
                   </div>
                 </div>
@@ -505,7 +506,7 @@ export const Markets = () => {
           
           <button
             onClick={() => setSelectedSecurity(null)}
-            className="w-full py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl font-bold flex justify-center items-center text-xs transition-colors cursor-pointer"
+            className="w-full py-2.5 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 rounded-xl font-bold flex justify-center items-center text-xs transition-colors cursor-pointer"
           >
             <ArrowLeft className="w-3.5 h-3.5 mr-1" />
             Back to Markets Overview
@@ -516,16 +517,16 @@ export const Markets = () => {
           {/* Market Indices Panel */}
           <div className="grid grid-cols-2 gap-3">
             {/* GASCI Card */}
-            <Card className="bg-slate-900 border-slate-800 text-white relative overflow-hidden group">
-              <div className="absolute top-0 right-0 p-6 text-slate-800/10 font-extrabold text-5xl pointer-events-none select-none">🇬🇾</div>
+            <Card className="bg-white dark:bg-slate-900 border-slate-100 dark:border-slate-800 text-slate-900 dark:text-white relative overflow-hidden group transition-colors duration-300">
+              <div className="absolute top-0 right-0 p-6 text-slate-100/10 dark:text-slate-800/10 font-extrabold text-5xl pointer-events-none select-none">🇬🇾</div>
               <CardContent className="p-4 flex flex-col justify-between h-24 relative z-10">
-                <div className="flex items-center justify-between text-[10px] text-slate-400 font-bold uppercase tracking-wider">
-                  <span className="flex items-center"><TrendingUp className="w-3.5 h-3.5 mr-1 text-emerald-400" /> GASCI Index</span>
+                <div className="flex items-center justify-between text-[10px] text-slate-500 dark:text-slate-400 font-bold uppercase tracking-wider">
+                  <span className="flex items-center"><TrendingUp className="w-3.5 h-3.5 mr-1 text-emerald-500 dark:text-emerald-400" /> GASCI Index</span>
                   <span>GYD</span>
                 </div>
                 <div className="mt-2 flex items-baseline justify-between">
                   <span className="text-2xl font-black tracking-tight">{indices.GASCI.value.toFixed(1)}</span>
-                  <span className={`text-xs font-semibold flex items-center px-1.5 py-0.5 rounded ${indices.GASCI.change >= 0 ? 'text-emerald-400 bg-emerald-500/10' : 'text-rose-400 bg-rose-500/10'}`}>
+                  <span className={`text-xs font-semibold flex items-center px-1.5 py-0.5 rounded ${indices.GASCI.change >= 0 ? 'text-emerald-650 bg-emerald-500/10 dark:text-emerald-400 dark:bg-emerald-500/20' : 'text-rose-650 bg-rose-500/10 dark:text-rose-450 dark:bg-rose-500/20'}`}>
                     {indices.GASCI.change >= 0 ? '+' : ''}{indices.GASCI.changePct.toFixed(2)}%
                   </span>
                 </div>
@@ -533,54 +534,54 @@ export const Markets = () => {
             </Card>
             
             {/* BSE Card */}
-            <Card className="bg-slate-900 border-slate-800 text-white relative overflow-hidden group">
-              <div className="absolute top-0 right-0 p-6 text-slate-800/10 font-extrabold text-5xl pointer-events-none select-none">🇧🇧</div>
+            <Card className="bg-white dark:bg-slate-900 border-slate-100 dark:border-slate-800 text-slate-900 dark:text-white relative overflow-hidden group transition-colors duration-300">
+              <div className="absolute top-0 right-0 p-6 text-slate-100/10 dark:text-slate-800/10 font-extrabold text-5xl pointer-events-none select-none">🇧🇧</div>
               <CardContent className="p-4 flex flex-col justify-between h-24 relative z-10">
-                <div className="flex items-center justify-between text-[10px] text-slate-400 font-bold uppercase tracking-wider">
-                  <span className="flex items-center"><TrendingUp className="w-3.5 h-3.5 mr-1 text-yellow-400" /> BSE Index</span>
+                <div className="flex items-center justify-between text-[10px] text-slate-500 dark:text-slate-400 font-bold uppercase tracking-wider">
+                  <span className="flex items-center"><TrendingUp className="w-3.5 h-3.5 mr-1 text-yellow-500 dark:text-yellow-400" /> BSE Index</span>
                   <span>BBD</span>
                 </div>
                 <div className="mt-2 flex items-baseline justify-between">
                   <span className="text-2xl font-black tracking-tight">{indices.BSE.value.toFixed(1)}</span>
-                  <span className={`text-xs font-semibold flex items-center px-1.5 py-0.5 rounded ${indices.BSE.change >= 0 ? 'text-emerald-400 bg-emerald-500/10' : 'text-rose-400 bg-rose-500/10'}`}>
+                  <span className={`text-xs font-semibold flex items-center px-1.5 py-0.5 rounded ${indices.BSE.change >= 0 ? 'text-emerald-650 bg-emerald-500/10 dark:text-emerald-400 dark:bg-emerald-500/20' : 'text-rose-650 bg-rose-500/10 dark:text-rose-450 dark:bg-rose-500/20'}`}>
                     {indices.BSE.change >= 0 ? '+' : ''}{indices.BSE.changePct.toFixed(2)}%
                   </span>
                 </div>
               </CardContent>
             </Card>
-
+ 
             {/* JSE Card */}
-            <Card className="bg-slate-900 border-slate-800 text-white relative overflow-hidden group">
-              <div className="absolute top-0 right-0 p-6 text-slate-800/10 font-extrabold text-5xl pointer-events-none select-none">🇯🇲</div>
+            <Card className="bg-white dark:bg-slate-900 border-slate-100 dark:border-slate-800 text-slate-900 dark:text-white relative overflow-hidden group transition-colors duration-300">
+              <div className="absolute top-0 right-0 p-6 text-slate-100/10 dark:text-slate-800/10 font-extrabold text-5xl pointer-events-none select-none">🇯🇲</div>
               <CardContent className="p-4 flex flex-col justify-between h-24 relative z-10">
-                <div className="flex items-center justify-between text-[10px] text-slate-400 font-bold uppercase tracking-wider">
-                  <span className="flex items-center"><TrendingUp className="w-3.5 h-3.5 mr-1 text-green-400" /> JSE Index</span>
+                <div className="flex items-center justify-between text-[10px] text-slate-500 dark:text-slate-400 font-bold uppercase tracking-wider">
+                  <span className="flex items-center"><TrendingUp className="w-3.5 h-3.5 mr-1 text-green-500 dark:text-green-400" /> JSE Index</span>
                   <span>JMD</span>
                 </div>
                 <div className="mt-2 flex items-baseline justify-between">
                   <span className="text-2xl font-black tracking-tight">
                     {indices.JSE.value > 0 ? indices.JSE.value.toFixed(1) : '1,000.0'}
                   </span>
-                  <span className={`text-xs font-semibold flex items-center px-1.5 py-0.5 rounded ${indices.JSE.change >= 0 ? 'text-emerald-400 bg-emerald-500/10' : 'text-rose-400 bg-rose-500/10'}`}>
+                  <span className={`text-xs font-semibold flex items-center px-1.5 py-0.5 rounded ${indices.JSE.change >= 0 ? 'text-emerald-650 bg-emerald-500/10 dark:text-emerald-400 dark:bg-emerald-500/20' : 'text-rose-650 bg-rose-500/10 dark:text-rose-450 dark:bg-rose-500/20'}`}>
                     {indices.JSE.change >= 0 ? '+' : ''}{indices.JSE.changePct.toFixed(2)}%
                   </span>
                 </div>
               </CardContent>
             </Card>
-
+ 
             {/* TTSE Card */}
-            <Card className="bg-slate-900 border-slate-800 text-white relative overflow-hidden group">
-              <div className="absolute top-0 right-0 p-6 text-slate-800/10 font-extrabold text-5xl pointer-events-none select-none">🇹🇹</div>
+            <Card className="bg-white dark:bg-slate-900 border-slate-100 dark:border-slate-800 text-slate-900 dark:text-white relative overflow-hidden group transition-colors duration-300">
+              <div className="absolute top-0 right-0 p-6 text-slate-100/10 dark:text-slate-800/10 font-extrabold text-5xl pointer-events-none select-none">🇹🇹</div>
               <CardContent className="p-4 flex flex-col justify-between h-24 relative z-10">
-                <div className="flex items-center justify-between text-[10px] text-slate-400 font-bold uppercase tracking-wider">
-                  <span className="flex items-center"><TrendingUp className="w-3.5 h-3.5 mr-1 text-cyan-400" /> TTSE Index</span>
+                <div className="flex items-center justify-between text-[10px] text-slate-500 dark:text-slate-400 font-bold uppercase tracking-wider">
+                  <span className="flex items-center"><TrendingUp className="w-3.5 h-3.5 mr-1 text-cyan-500 dark:text-cyan-400" /> TTSE Index</span>
                   <span>TTD</span>
                 </div>
                 <div className="mt-2 flex items-baseline justify-between">
                   <span className="text-2xl font-black tracking-tight">
                     {indices.TTSE.value > 0 ? indices.TTSE.value.toFixed(1) : '1,000.0'}
                   </span>
-                  <span className={`text-xs font-semibold flex items-center px-1.5 py-0.5 rounded ${indices.TTSE.change >= 0 ? 'text-emerald-400 bg-emerald-500/10' : 'text-rose-400 bg-rose-500/10'}`}>
+                  <span className={`text-xs font-semibold flex items-center px-1.5 py-0.5 rounded ${indices.TTSE.change >= 0 ? 'text-emerald-650 bg-emerald-500/10 dark:text-emerald-400 dark:bg-emerald-500/20' : 'text-rose-650 bg-rose-500/10 dark:text-rose-450 dark:bg-rose-500/20'}`}>
                     {indices.TTSE.change >= 0 ? '+' : ''}{indices.TTSE.changePct.toFixed(2)}%
                   </span>
                 </div>
@@ -591,29 +592,29 @@ export const Markets = () => {
           {/* Market Overview & Biggest Movers */}
           <Card>
             <CardContent className="p-5">
-              <div className="flex justify-between items-center mb-6 border-b border-slate-100 pb-4 flex-wrap gap-3">
+              <div className="flex justify-between items-center mb-6 border-b border-slate-100 dark:border-slate-800 pb-4 flex-wrap gap-3">
                 <div>
-                  <div className="font-bold text-sm uppercase tracking-wide text-slate-800 flex items-center gap-2">
+                  <div className="font-bold text-sm uppercase tracking-wide text-slate-800 dark:text-slate-200 flex items-center gap-2">
                     <span>Movers for the Markets</span>
                     {currentSessionDate && (
-                      <span className="text-[10px] font-bold text-slate-500 bg-slate-100 px-2 py-0.5 rounded border border-slate-200/50">
+                      <span className="text-[10px] font-bold text-slate-500 dark:text-slate-400 bg-slate-100 dark:bg-slate-800 px-2 py-0.5 rounded border border-slate-200/50 dark:border-slate-700/50">
                         Session: {currentSessionDate}
                       </span>
                     )}
                   </div>
-                  <div className="text-xs text-slate-400 mt-0.5">Top gainers and losers by percentage price change.</div>
+                  <div className="text-xs text-slate-400 dark:text-slate-500 mt-0.5">Top gainers and losers by percentage price change.</div>
                 </div>
                 
                 {/* Filter Swaps */}
-                <div className="flex space-x-1 bg-slate-100 p-1 rounded-lg text-xs font-semibold">
+                <div className="flex space-x-1 bg-slate-100 dark:bg-slate-800/50 p-1 rounded-lg text-xs font-semibold border border-transparent dark:border-slate-700/30">
                   {(['ALL', 'GASCI', 'BSE', 'JSE', 'TTSE'] as const).map(ex => (
                     <button
                       key={ex}
                       onClick={() => setSelectedExchange(ex)}
                       className={`px-2.5 py-1 rounded-md transition-all cursor-pointer ${
                         selectedExchange === ex
-                          ? 'bg-white text-slate-900 shadow-xs border border-slate-200/40'
-                          : 'text-slate-500 hover:text-slate-900'
+                          ? 'bg-white dark:bg-slate-900 text-slate-900 dark:text-white shadow-xs border border-slate-200/40 dark:border-slate-700/30'
+                          : 'text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-250'
                       }`}
                     >
                       {ex === 'ALL' ? 'All' : ex}
@@ -625,13 +626,13 @@ export const Markets = () => {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 {/* Gainers Column */}
                 <div>
-                  <div className="text-xs font-bold text-emerald-600 uppercase tracking-widest mb-3 border-b border-slate-50 pb-1.5 flex items-center gap-1">
+                  <div className="text-xs font-bold text-emerald-600 dark:text-emerald-450 uppercase tracking-widest mb-3 border-b border-slate-50 dark:border-slate-800 pb-1.5 flex items-center gap-1">
                     <ArrowUpRight className="w-3.5 h-3.5 stroke-[2.5]" />
                     <span>Top Gainers</span>
                   </div>
                   <div className="space-y-3.5">
                     {marketGainers.length === 0 ? (
-                      <div className="text-slate-400 text-xs py-4 text-center">No daily gainers recorded.</div>
+                      <div className="text-slate-400 dark:text-slate-500 text-xs py-4 text-center">No daily gainers recorded.</div>
                     ) : (
                       marketGainers.map(mover => {
                         const isWatched = watchlist.includes(mover.security.id);
@@ -640,7 +641,7 @@ export const Markets = () => {
                           <Link 
                             to={`/holdings/${mover.security.id}`}
                             key={mover.security.id}
-                            className="flex justify-between items-center hover:bg-slate-50/80 p-2.5 -mx-2.5 rounded-xl transition-all block cursor-pointer"
+                            className="flex justify-between items-center hover:bg-slate-50/80 dark:hover:bg-slate-800/50 p-2.5 -mx-2.5 rounded-xl transition-all block cursor-pointer"
                           >
                             <div className="flex items-center space-x-3 min-w-0">
                               {/* Watchlist Star */}
@@ -650,19 +651,19 @@ export const Markets = () => {
                                   e.stopPropagation();
                                   toggleWatchlist(mover.security.id);
                                 }}
-                                className="p-1.5 rounded-lg hover:bg-slate-200/50 transition-colors shrink-0 cursor-pointer"
+                                className="p-1.5 rounded-lg hover:bg-slate-200/50 dark:hover:bg-slate-800/50 transition-colors shrink-0 cursor-pointer"
                               >
-                                <Star className={`w-4 h-4 ${isWatched ? 'fill-amber-400 text-amber-400' : 'text-slate-300'}`} />
+                                <Star className={`w-4 h-4 ${isWatched ? 'fill-amber-400 text-amber-400' : 'text-slate-300 dark:text-slate-600'}`} />
                               </button>
                               
                               <div className="min-w-0">
                                 <div className="flex items-center space-x-1.5">
-                                  <span className="font-extrabold text-slate-900 text-sm tracking-tight">{mover.security.ticker}</span>
+                                  <span className="font-extrabold text-slate-900 dark:text-white text-sm tracking-tight">{mover.security.ticker}</span>
                                   <Badge variant={mover.security.exchangeId === 'GASCI' ? 'blue' : 'yellow'}>
                                     {mover.security.exchangeId}
                                   </Badge>
                                 </div>
-                                <div className="text-[11px] text-slate-450 truncate max-w-[130px] mt-0.5">
+                                <div className="text-[11px] text-slate-450 dark:text-slate-400 truncate max-w-[130px] mt-0.5">
                                   {mover.security.companyName}
                                 </div>
                               </div>
@@ -670,12 +671,12 @@ export const Markets = () => {
 
                             <div className="text-right shrink-0 flex items-center gap-3">
                               <div>
-                                <div className="font-extrabold text-sm text-slate-900 tracking-tight">
+                                <div className="font-extrabold text-sm text-slate-900 dark:text-white tracking-tight">
                                   {formatMoney(mover.currentPrice, currency)}
                                 </div>
-                                <div className="text-[10px] text-slate-400 mt-0.5">Last Price</div>
+                                <div className="text-[10px] text-slate-400 dark:text-slate-500 mt-0.5">Last Price</div>
                               </div>
-                              <span className="px-2.5 py-1 text-xs font-bold text-emerald-600 bg-emerald-50 rounded-lg flex items-center gap-0.5 shrink-0">
+                              <span className="px-2.5 py-1 text-xs font-bold text-emerald-600 bg-emerald-50 dark:bg-emerald-950/30 rounded-lg flex items-center gap-0.5 shrink-0">
                                 <ArrowUpRight className="w-3.5 h-3.5 stroke-[2.5]" />
                                 {formatPercentage(mover.changePct)}
                               </span>
@@ -689,13 +690,13 @@ export const Markets = () => {
 
                 {/* Losers Column */}
                 <div>
-                  <div className="text-xs font-bold text-rose-600 uppercase tracking-widest mb-3 border-b border-slate-55 pb-1.5 flex items-center gap-1">
+                  <div className="text-xs font-bold text-rose-600 dark:text-rose-455 uppercase tracking-widest mb-3 border-b border-slate-55 dark:border-slate-800 pb-1.5 flex items-center gap-1">
                     <ArrowDownRight className="w-3.5 h-3.5 stroke-[2.5]" />
                     <span>Top Losers</span>
                   </div>
                   <div className="space-y-3.5">
                     {marketLosers.length === 0 ? (
-                      <div className="text-slate-400 text-xs py-4 text-center">No daily losers recorded.</div>
+                      <div className="text-slate-400 dark:text-slate-500 text-xs py-4 text-center">No daily losers recorded.</div>
                     ) : (
                       marketLosers.map(mover => {
                         const isWatched = watchlist.includes(mover.security.id);
@@ -704,7 +705,7 @@ export const Markets = () => {
                           <Link 
                             to={`/holdings/${mover.security.id}`}
                             key={mover.security.id}
-                            className="flex justify-between items-center hover:bg-slate-50/80 p-2.5 -mx-2.5 rounded-xl transition-all block cursor-pointer"
+                            className="flex justify-between items-center hover:bg-slate-50/80 dark:hover:bg-slate-800/50 p-2.5 -mx-2.5 rounded-xl transition-all block cursor-pointer"
                           >
                             <div className="flex items-center space-x-3 min-w-0">
                               {/* Watchlist Star */}
@@ -714,19 +715,19 @@ export const Markets = () => {
                                   e.stopPropagation();
                                   toggleWatchlist(mover.security.id);
                                 }}
-                                className="p-1.5 rounded-lg hover:bg-slate-200/50 transition-colors shrink-0 cursor-pointer"
+                                className="p-1.5 rounded-lg hover:bg-slate-200/50 dark:hover:bg-slate-800/50 transition-colors shrink-0 cursor-pointer"
                               >
-                                <Star className={`w-4 h-4 ${isWatched ? 'fill-amber-400 text-amber-400' : 'text-slate-300'}`} />
+                                <Star className={`w-4 h-4 ${isWatched ? 'fill-amber-400 text-amber-400' : 'text-slate-300 dark:text-slate-600'}`} />
                               </button>
                               
                               <div className="min-w-0">
                                 <div className="flex items-center space-x-1.5">
-                                  <span className="font-extrabold text-slate-900 text-sm tracking-tight">{mover.security.ticker}</span>
+                                  <span className="font-extrabold text-slate-900 dark:text-white text-sm tracking-tight">{mover.security.ticker}</span>
                                   <Badge variant={mover.security.exchangeId === 'GASCI' ? 'blue' : 'yellow'}>
                                     {mover.security.exchangeId}
                                   </Badge>
                                 </div>
-                                <div className="text-[11px] text-slate-450 truncate max-w-[130px] mt-0.5">
+                                <div className="text-[11px] text-slate-450 dark:text-slate-400 truncate max-w-[130px] mt-0.5">
                                   {mover.security.companyName}
                                 </div>
                               </div>
@@ -734,12 +735,12 @@ export const Markets = () => {
 
                             <div className="text-right shrink-0 flex items-center gap-3">
                               <div>
-                                <div className="font-extrabold text-sm text-slate-900 tracking-tight">
+                                <div className="font-extrabold text-sm text-slate-900 dark:text-white tracking-tight">
                                   {formatMoney(mover.currentPrice, currency)}
                                 </div>
-                                <div className="text-[10px] text-slate-400 mt-0.5">Last Price</div>
+                                <div className="text-[10px] text-slate-400 dark:text-slate-500 mt-0.5">Last Price</div>
                               </div>
-                              <span className="px-2.5 py-1 text-xs font-bold text-rose-600 bg-rose-55 rounded-lg flex items-center gap-0.5 shrink-0">
+                              <span className="px-2.5 py-1 text-xs font-bold text-rose-600 bg-rose-50 dark:bg-rose-950/30 rounded-lg flex items-center gap-0.5 shrink-0">
                                 <ArrowDownRight className="w-3.5 h-3.5 stroke-[2.5]" />
                                 {formatPercentage(mover.changePct)}
                               </span>
@@ -757,17 +758,17 @@ export const Markets = () => {
           {/* Relevant News Feed */}
           <Card>
             <CardContent className="p-5">
-              <div className="flex items-center space-x-2 mb-4 border-b border-slate-100 pb-2">
-                <Newspaper className="w-5 h-5 text-blue-600 animate-pulse" />
-                <div className="font-bold text-sm uppercase tracking-wide text-slate-800">Relevant Corporate News</div>
+              <div className="flex items-center space-x-2 mb-4 border-b border-slate-100 dark:border-slate-800 pb-2">
+                <Newspaper className="w-5 h-5 text-blue-600 dark:text-blue-400 animate-pulse" />
+                <div className="font-bold text-sm uppercase tracking-wide text-slate-800 dark:text-slate-200">Relevant Corporate News</div>
               </div>
               
-              <div className="space-y-4 divide-y divide-slate-100">
+              <div className="space-y-4 divide-y divide-slate-100 dark:divide-slate-800">
                 {latestNews.length === 0 ? (
-                  <div className="flex flex-col items-center py-6 text-center text-slate-400">
-                    <HelpCircle className="w-8 h-8 text-slate-300 mb-2" />
+                  <div className="flex flex-col items-center py-6 text-center text-slate-400 dark:text-slate-500">
+                    <HelpCircle className="w-8 h-8 text-slate-300 dark:text-slate-700 mb-2" />
                     <p className="text-sm">No recent investment notes logged.</p>
-                    <p className="text-xs text-slate-400 max-w-[280px] mt-1">Add research journal synopses on security pages to populate the feed.</p>
+                    <p className="text-xs text-slate-400 dark:text-slate-500 max-w-[280px] mt-1">Add research journal synopses on security pages to populate the feed.</p>
                   </div>
                 ) : (
                   latestNews.map((news, index) => {
@@ -776,17 +777,17 @@ export const Markets = () => {
                       <Link 
                         to={`/holdings/${news.securityId}`}
                         key={news.id}
-                        className={`block hover:bg-slate-50 p-3 rounded-xl transition-colors ${index > 0 ? 'pt-4' : ''}`}
+                        className={`block hover:bg-slate-55 dark:hover:bg-slate-800/40 p-3 rounded-xl transition-colors ${index > 0 ? 'pt-4 border-t border-transparent dark:border-slate-800/30' : ''}`}
                       >
                         <div className="flex justify-between items-start mb-1.5">
                           <div className="flex items-center space-x-2">
-                            <span className="font-extrabold text-slate-900 text-sm">{sec?.ticker || 'Security'}</span>
-                            <span className="text-[10px] text-slate-400 bg-slate-100 px-1.5 py-0.5 rounded font-semibold">{news.date}</span>
+                            <span className="font-extrabold text-slate-900 dark:text-white text-sm">{sec?.ticker || 'Security'}</span>
+                            <span className="text-[10px] text-slate-400 dark:text-slate-500 bg-slate-100 dark:bg-slate-800 px-1.5 py-0.5 rounded font-semibold">{news.date}</span>
                           </div>
                           <Badge variant={sec?.exchangeId === 'GASCI' ? 'blue' : 'yellow'}>{sec?.exchangeId}</Badge>
                         </div>
-                        <div className="font-bold text-slate-800 text-xs mb-1.5 leading-snug">{news.title}</div>
-                        <div className="text-slate-500 text-xs line-clamp-3 leading-relaxed">{news.synopsis}</div>
+                        <div className="font-bold text-slate-800 dark:text-slate-200 text-xs mb-1.5 leading-snug">{news.title}</div>
+                        <div className="text-slate-500 dark:text-slate-400 text-xs line-clamp-3 leading-relaxed">{news.synopsis}</div>
                       </Link>
                     );
                   })

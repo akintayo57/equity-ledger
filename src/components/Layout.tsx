@@ -7,6 +7,7 @@ import { ReloadPrompt } from './ReloadPrompt';
 import { motion } from 'motion/react';
 import { User } from 'firebase/auth';
 import { auth, signOut } from '../firebase';
+import { useStore } from '../store';
 
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
@@ -20,6 +21,7 @@ const navItems = [
 
 export const Layout = ({ user }: { user: User }) => {
   const location = useLocation();
+  const { theme } = useStore();
 
   // Scroll to top on route changes to prevent sticky layout overlap
   useEffect(() => {
@@ -35,8 +37,8 @@ export const Layout = ({ user }: { user: User }) => {
   };
 
   return (
-    <div className="flex flex-col min-h-screen bg-slate-50 text-slate-900 pb-24">
-      <header className="bg-slate-900/90 backdrop-blur-md text-white px-5 py-3 shadow-sm sticky top-0 z-20 border-b border-slate-800/20 flex justify-between items-center">
+    <div className="flex flex-col min-h-screen bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-50 pb-24 transition-colors duration-300">
+      <header className="bg-slate-900/90 backdrop-blur-md text-white px-5 py-3 shadow-sm sticky top-0 z-20 border-b border-slate-800/20 dark:border-slate-800 flex justify-between items-center">
         <h1 className="text-lg font-bold tracking-tight bg-gradient-to-r from-blue-400 via-cyan-400 to-emerald-400 bg-clip-text text-transparent">
           Harbour Finance
         </h1>
@@ -71,7 +73,7 @@ export const Layout = ({ user }: { user: User }) => {
         <Outlet />
       </main>
 
-      <nav className="fixed bottom-0 left-0 right-0 bg-white/95 backdrop-blur-md border-t border-slate-100 safe-area-pb z-30 shadow-lg">
+      <nav className="fixed bottom-0 left-0 right-0 bg-white/95 dark:bg-slate-900/95 backdrop-blur-md border-t border-slate-100 dark:border-slate-800 safe-area-pb z-30 shadow-lg transition-colors duration-300">
         <div className="flex justify-between items-center max-w-lg mx-auto px-3 relative">
           {navItems.map((item) => {
             const isActive = location.pathname === item.path || (item.path !== '/' && location.pathname.startsWith(item.path));
@@ -82,20 +84,20 @@ export const Layout = ({ user }: { user: User }) => {
                 to={item.path}
                 className={cn(
                   'relative flex flex-col items-center py-3.5 px-1.5 flex-1 text-[10px] font-semibold transition-colors z-10',
-                  isActive ? 'text-blue-600' : 'text-slate-400 hover:text-slate-700'
+                  isActive ? 'text-blue-600 dark:text-blue-400' : 'text-slate-400 dark:text-slate-500 hover:text-slate-700 dark:hover:text-slate-200'
                 )}
               >
                 {isActive && (
                   <motion.div
                     layoutId="navTabBackground"
-                    className="absolute inset-x-1.5 inset-y-1.5 bg-blue-50/60 rounded-xl -z-10"
+                    className="absolute inset-x-1.5 inset-y-1.5 bg-blue-50/60 dark:bg-slate-800/60 rounded-xl -z-10"
                     transition={{ type: 'spring', stiffness: 350, damping: 28 }}
                   />
                 )}
                 {isActive && (
                   <motion.div
                     layoutId="navTabActiveBar"
-                    className="absolute top-0 left-1/2 -translate-x-1/2 w-8 h-0.75 bg-blue-600 rounded-b-md"
+                    className="absolute top-0 left-1/2 -translate-x-1/2 w-8 h-0.75 bg-blue-600 dark:bg-blue-400 rounded-b-md"
                     transition={{ type: 'spring', stiffness: 350, damping: 28 }}
                   />
                 )}

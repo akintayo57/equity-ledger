@@ -39,6 +39,8 @@ interface StoreContextType extends AppState {
   addAccount: (acc: Omit<Account, 'id'>) => Promise<string>;
   addEquityNote: (note: Omit<EquityNote, 'id'>) => Promise<void>;
   deleteEquityNote: (id: string) => Promise<void>;
+  theme: 'light' | 'dark';
+  setTheme: (t: 'light' | 'dark') => void;
 }
 
 const StoreContext = createContext<StoreContextType | undefined>(undefined);
@@ -54,6 +56,25 @@ export const StoreProvider = ({ children, user }: { children: ReactNode; user: U
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [watchlist, setWatchlist] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
+
+  const [theme, setThemeState] = useState<'light' | 'dark'>(() => {
+    const saved = localStorage.getItem('harbour_theme');
+    if (saved === 'dark' || saved === 'light') return saved;
+    return window.matchMedia?.('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+  });
+
+  const setTheme = (newTheme: 'light' | 'dark') => {
+    setThemeState(newTheme);
+    localStorage.setItem('harbour_theme', newTheme);
+  };
+
+  useEffect(() => {
+    if (theme === 'dark') {
+      document.documentElement.classList.add('dark');
+    } else {
+      document.documentElement.classList.remove('dark');
+    }
+  }, [theme]);
 
   // Cache user profile metadata to ensure consistent offline path matching
   useEffect(() => {
@@ -281,6 +302,8 @@ export const StoreProvider = ({ children, user }: { children: ReactNode; user: U
         addAccount,
         addEquityNote,
         deleteEquityNote,
+        theme,
+        setTheme,
       }}
     >
       {loading ? (
