@@ -588,6 +588,172 @@ export const Markets = () => {
             </Card>
           </div>
 
+          {/* Market Overview & Biggest Movers */}
+          <Card>
+            <CardContent className="p-5">
+              <div className="flex justify-between items-center mb-6 border-b border-slate-100 pb-4 flex-wrap gap-3">
+                <div>
+                  <div className="font-bold text-sm uppercase tracking-wide text-slate-800 flex items-center gap-2">
+                    <span>Movers for the Markets</span>
+                    {currentSessionDate && (
+                      <span className="text-[10px] font-bold text-slate-500 bg-slate-100 px-2 py-0.5 rounded border border-slate-200/50">
+                        Session: {currentSessionDate}
+                      </span>
+                    )}
+                  </div>
+                  <div className="text-xs text-slate-400 mt-0.5">Top gainers and losers by percentage price change.</div>
+                </div>
+                
+                {/* Filter Swaps */}
+                <div className="flex space-x-1 bg-slate-100 p-1 rounded-lg text-xs font-semibold">
+                  {(['ALL', 'GASCI', 'BSE', 'JSE', 'TTSE'] as const).map(ex => (
+                    <button
+                      key={ex}
+                      onClick={() => setSelectedExchange(ex)}
+                      className={`px-2.5 py-1 rounded-md transition-all cursor-pointer ${
+                        selectedExchange === ex
+                          ? 'bg-white text-slate-900 shadow-xs border border-slate-200/40'
+                          : 'text-slate-500 hover:text-slate-900'
+                      }`}
+                    >
+                      {ex === 'ALL' ? 'All' : ex}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                {/* Gainers Column */}
+                <div>
+                  <div className="text-xs font-bold text-emerald-600 uppercase tracking-widest mb-3 border-b border-slate-50 pb-1.5 flex items-center gap-1">
+                    <ArrowUpRight className="w-3.5 h-3.5 stroke-[2.5]" />
+                    <span>Top Gainers</span>
+                  </div>
+                  <div className="space-y-3.5">
+                    {marketGainers.length === 0 ? (
+                      <div className="text-slate-400 text-xs py-4 text-center">No daily gainers recorded.</div>
+                    ) : (
+                      marketGainers.map(mover => {
+                        const isWatched = watchlist.includes(mover.security.id);
+                        const currency = mover.security.currency || exchanges.find(e => e.id === mover.security.exchangeId)?.currency || 'USD';
+                        return (
+                          <Link 
+                            to={`/holdings/${mover.security.id}`}
+                            key={mover.security.id}
+                            className="flex justify-between items-center hover:bg-slate-50/80 p-2.5 -mx-2.5 rounded-xl transition-all block cursor-pointer"
+                          >
+                            <div className="flex items-center space-x-3 min-w-0">
+                              {/* Watchlist Star */}
+                              <button
+                                onClick={(e) => {
+                                  e.preventDefault();
+                                  e.stopPropagation();
+                                  toggleWatchlist(mover.security.id);
+                                }}
+                                className="p-1.5 rounded-lg hover:bg-slate-200/50 transition-colors shrink-0 cursor-pointer"
+                              >
+                                <Star className={`w-4 h-4 ${isWatched ? 'fill-amber-400 text-amber-400' : 'text-slate-300'}`} />
+                              </button>
+                              
+                              <div className="min-w-0">
+                                <div className="flex items-center space-x-1.5">
+                                  <span className="font-extrabold text-slate-900 text-sm tracking-tight">{mover.security.ticker}</span>
+                                  <Badge variant={mover.security.exchangeId === 'GASCI' ? 'blue' : 'yellow'}>
+                                    {mover.security.exchangeId}
+                                  </Badge>
+                                </div>
+                                <div className="text-[11px] text-slate-450 truncate max-w-[130px] mt-0.5">
+                                  {mover.security.companyName}
+                                </div>
+                              </div>
+                            </div>
+
+                            <div className="text-right shrink-0 flex items-center gap-3">
+                              <div>
+                                <div className="font-extrabold text-sm text-slate-900 tracking-tight">
+                                  {formatMoney(mover.currentPrice, currency)}
+                                </div>
+                                <div className="text-[10px] text-slate-400 mt-0.5">Last Price</div>
+                              </div>
+                              <span className="px-2.5 py-1 text-xs font-bold text-emerald-600 bg-emerald-50 rounded-lg flex items-center gap-0.5 shrink-0">
+                                <ArrowUpRight className="w-3.5 h-3.5 stroke-[2.5]" />
+                                {formatPercentage(mover.changePct)}
+                              </span>
+                            </div>
+                          </Link>
+                        );
+                      })
+                    )}
+                  </div>
+                </div>
+
+                {/* Losers Column */}
+                <div>
+                  <div className="text-xs font-bold text-rose-600 uppercase tracking-widest mb-3 border-b border-slate-55 pb-1.5 flex items-center gap-1">
+                    <ArrowDownRight className="w-3.5 h-3.5 stroke-[2.5]" />
+                    <span>Top Losers</span>
+                  </div>
+                  <div className="space-y-3.5">
+                    {marketLosers.length === 0 ? (
+                      <div className="text-slate-400 text-xs py-4 text-center">No daily losers recorded.</div>
+                    ) : (
+                      marketLosers.map(mover => {
+                        const isWatched = watchlist.includes(mover.security.id);
+                        const currency = mover.security.currency || exchanges.find(e => e.id === mover.security.exchangeId)?.currency || 'USD';
+                        return (
+                          <Link 
+                            to={`/holdings/${mover.security.id}`}
+                            key={mover.security.id}
+                            className="flex justify-between items-center hover:bg-slate-50/80 p-2.5 -mx-2.5 rounded-xl transition-all block cursor-pointer"
+                          >
+                            <div className="flex items-center space-x-3 min-w-0">
+                              {/* Watchlist Star */}
+                              <button
+                                onClick={(e) => {
+                                  e.preventDefault();
+                                  e.stopPropagation();
+                                  toggleWatchlist(mover.security.id);
+                                }}
+                                className="p-1.5 rounded-lg hover:bg-slate-200/50 transition-colors shrink-0 cursor-pointer"
+                              >
+                                <Star className={`w-4 h-4 ${isWatched ? 'fill-amber-400 text-amber-400' : 'text-slate-300'}`} />
+                              </button>
+                              
+                              <div className="min-w-0">
+                                <div className="flex items-center space-x-1.5">
+                                  <span className="font-extrabold text-slate-900 text-sm tracking-tight">{mover.security.ticker}</span>
+                                  <Badge variant={mover.security.exchangeId === 'GASCI' ? 'blue' : 'yellow'}>
+                                    {mover.security.exchangeId}
+                                  </Badge>
+                                </div>
+                                <div className="text-[11px] text-slate-450 truncate max-w-[130px] mt-0.5">
+                                  {mover.security.companyName}
+                                </div>
+                              </div>
+                            </div>
+
+                            <div className="text-right shrink-0 flex items-center gap-3">
+                              <div>
+                                <div className="font-extrabold text-sm text-slate-900 tracking-tight">
+                                  {formatMoney(mover.currentPrice, currency)}
+                                </div>
+                                <div className="text-[10px] text-slate-400 mt-0.5">Last Price</div>
+                              </div>
+                              <span className="px-2.5 py-1 text-xs font-bold text-rose-600 bg-rose-55 rounded-lg flex items-center gap-0.5 shrink-0">
+                                <ArrowDownRight className="w-3.5 h-3.5 stroke-[2.5]" />
+                                {formatPercentage(mover.changePct)}
+                              </span>
+                            </div>
+                          </Link>
+                        );
+                      })
+                    )}
+                  </div>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
           {/* Relevant News Feed */}
           <Card>
             <CardContent className="p-5">
@@ -625,172 +791,6 @@ export const Markets = () => {
                     );
                   })
                 )}
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* Market Overview & Biggest Movers */}
-          <Card>
-            <CardContent className="p-5">
-              <div className="flex justify-between items-center mb-6 border-b border-slate-100 pb-4 flex-wrap gap-3">
-                <div>
-                  <div className="font-bold text-sm uppercase tracking-wide text-slate-800 flex items-center gap-2">
-                    <span>Movers for the Markets</span>
-                    {currentSessionDate && (
-                      <span className="text-[10px] font-bold text-slate-500 bg-slate-100 px-2 py-0.5 rounded border border-slate-200/50">
-                        Session: {currentSessionDate}
-                      </span>
-                    )}
-                  </div>
-                  <div className="text-xs text-slate-400 mt-0.5">Top gainers and losers by percentage price change.</div>
-                </div>
-                
-                {/* Filter Swaps */}
-                <div className="flex space-x-1 bg-slate-100 p-1 rounded-lg text-xs font-semibold">
-                  {(['ALL', 'GASCI', 'BSE', 'JSE', 'TTSE'] as const).map(ex => (
-                    <button
-                      key={ex}
-                      onClick={() => setSelectedExchange(ex)}
-                      className={`px-2.5 py-1 rounded-md transition-all cursor-pointer ${
-                        selectedExchange === ex
-                          ? 'bg-white text-slate-900 shadow-xs border border-slate-200/40'
-                          : 'text-slate-500 hover:text-slate-900'
-                      }`}
-                    >
-                      {ex === 'ALL' ? 'All' : ex}
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              <div className="grid grid-cols-1 gap-6">
-                {/* Top Gainers Column */}
-                <div>
-                  <div className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-3.5 flex items-center">
-                    <span className="w-2 h-2 rounded-full bg-emerald-500 mr-2 shadow-sm animate-pulse" />
-                    Top Gainers
-                  </div>
-                  <div className="space-y-2">
-                    {marketGainers.length === 0 ? (
-                      <div className="text-slate-400 text-xs py-4 text-center border border-dashed border-slate-100 rounded-xl bg-slate-50/50">No price updates found.</div>
-                    ) : (
-                      marketGainers.map(mover => {
-                        const isWatched = watchlist.includes(mover.security.id);
-                        const currency = getSecurityCurrency(mover.security);
-                        return (
-                          <Link 
-                            to={`/holdings/${mover.security.id}`} 
-                            key={mover.security.id} 
-                            className="flex justify-between items-center bg-slate-50/60 hover:bg-slate-100/80 p-3.5 rounded-xl border border-slate-100/50 transition-all block cursor-pointer"
-                          >
-                            <div className="flex items-center space-x-3 min-w-0">
-                              {/* Watchlist Toggle */}
-                              <button
-                                onClick={(e) => {
-                                  e.preventDefault();
-                                  e.stopPropagation();
-                                  toggleWatchlist(mover.security.id);
-                                }}
-                                className="p-1.5 rounded-lg hover:bg-slate-200/50 transition-colors shrink-0 cursor-pointer"
-                              >
-                                <Star className={`w-4 h-4 ${isWatched ? 'fill-amber-400 text-amber-400' : 'text-slate-300'}`} />
-                              </button>
-                              
-                              <div className="min-w-0">
-                                <div className="flex items-center space-x-1.5">
-                                  <span className="font-extrabold text-slate-900 text-sm tracking-tight">{mover.security.ticker}</span>
-                                  <Badge variant={mover.security.exchangeId === 'GASCI' ? 'blue' : 'yellow'}>
-                                    {mover.security.exchangeId}
-                                  </Badge>
-                                </div>
-                                <div className="text-[11px] text-slate-400 truncate max-w-[130px] sm:max-w-[200px] mt-0.5">
-                                  {mover.security.companyName}
-                                </div>
-                              </div>
-                            </div>
-
-                            <div className="text-right shrink-0 flex items-center gap-3">
-                              <div>
-                                <div className="font-extrabold text-sm text-slate-900 tracking-tight">
-                                  {formatMoney(mover.currentPrice, currency)}
-                                </div>
-                                <div className="text-[10px] text-slate-400 mt-0.5">Last Price</div>
-                              </div>
-                              <span className="px-2.5 py-1 text-xs font-bold text-emerald-600 bg-emerald-50 rounded-lg flex items-center gap-0.5 shrink-0">
-                                <ArrowUpRight className="w-3.5 h-3.5 stroke-[2.5]" />
-                                {mover.changePct >= 0 ? '+' : ''}{formatPercentage(mover.changePct)}
-                              </span>
-                            </div>
-                          </Link>
-                        );
-                      })
-                    )}
-                  </div>
-                </div>
-
-                {/* Top Losers Column */}
-                <div>
-                  <div className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-3.5 flex items-center">
-                    <span className="w-2 h-2 rounded-full bg-rose-500 mr-2 shadow-sm animate-pulse" />
-                    Top Losers
-                  </div>
-                  <div className="space-y-2">
-                    {marketLosers.length === 0 ? (
-                      <div className="text-slate-400 text-xs py-4 text-center border border-dashed border-slate-100 rounded-xl bg-slate-50/50">No price updates found.</div>
-                    ) : (
-                      marketLosers.map(mover => {
-                        const isWatched = watchlist.includes(mover.security.id);
-                        const currency = getSecurityCurrency(mover.security);
-                        return (
-                          <Link 
-                            to={`/holdings/${mover.security.id}`} 
-                            key={mover.security.id} 
-                            className="flex justify-between items-center bg-slate-50/60 hover:bg-slate-100/80 p-3.5 rounded-xl border border-slate-100/50 transition-all block cursor-pointer"
-                          >
-                            <div className="flex items-center space-x-3 min-w-0">
-                              {/* Watchlist Star */}
-                              <button
-                                onClick={(e) => {
-                                  e.preventDefault();
-                                  e.stopPropagation();
-                                  toggleWatchlist(mover.security.id);
-                                }}
-                                className="p-1.5 rounded-lg hover:bg-slate-200/50 transition-colors shrink-0 cursor-pointer"
-                              >
-                                <Star className={`w-4 h-4 ${isWatched ? 'fill-amber-400 text-amber-400' : 'text-slate-300'}`} />
-                              </button>
-                              
-                              <div className="min-w-0">
-                                <div className="flex items-center space-x-1.5">
-                                  <span className="font-extrabold text-slate-900 text-sm tracking-tight">{mover.security.ticker}</span>
-                                  <Badge variant={mover.security.exchangeId === 'GASCI' ? 'blue' : 'yellow'}>
-                                    {mover.security.exchangeId}
-                                  </Badge>
-                                </div>
-                                <div className="text-[11px] text-slate-450 truncate max-w-[130px] mt-0.5">
-                                  {mover.security.companyName}
-                                </div>
-                              </div>
-                            </div>
-
-                            <div className="text-right shrink-0 flex items-center gap-3">
-                              <div>
-                                <div className="font-extrabold text-sm text-slate-900 tracking-tight">
-                                  {formatMoney(mover.currentPrice, currency)}
-                                </div>
-                                <div className="text-[10px] text-slate-400 mt-0.5">Last Price</div>
-                              </div>
-                              <span className="px-2.5 py-1 text-xs font-bold text-rose-600 bg-rose-50 rounded-lg flex items-center gap-0.5 shrink-0">
-                                <ArrowDownRight className="w-3.5 h-3.5 stroke-[2.5]" />
-                                {formatPercentage(mover.changePct)}
-                              </span>
-                            </div>
-                          </Link>
-                        );
-                      })
-                    )}
-                  </div>
-                </div>
               </div>
             </CardContent>
           </Card>
