@@ -16,7 +16,6 @@ export function cn(...inputs: ClassValue[]) {
 const navItems = [
   { name: 'Markets', path: '/', icon: TrendingUp },
   { name: 'Portfolio', path: '/portfolio', icon: Wallet },
-  { name: 'Settings', path: '/settings', icon: Settings },
 ];
 
 export const Layout = ({ user }: { user: User }) => {
@@ -35,6 +34,8 @@ export const Layout = ({ user }: { user: User }) => {
       console.error('Logout error:', err);
     }
   };
+
+  const isSettingsActive = location.pathname === '/settings';
 
   return (
     <div className="flex flex-col min-h-screen bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-50 pb-24 transition-colors duration-300">
@@ -59,6 +60,16 @@ export const Layout = ({ user }: { user: User }) => {
               L
             </div>
           )}
+          <Link
+            to="/settings"
+            className={cn(
+              "p-1.5 hover:bg-slate-800 rounded-lg transition duration-150 cursor-pointer",
+              isSettingsActive ? "text-blue-400" : "text-slate-400 hover:text-white"
+            )}
+            title="Settings"
+          >
+            <Settings className="w-4 h-4" />
+          </Link>
           <button 
             onClick={handleLogout}
             className="text-slate-400 hover:text-white p-1.5 hover:bg-slate-800 rounded-lg transition duration-150 cursor-pointer"
