@@ -36,14 +36,17 @@ Harbour Finance (formerly Caribbean Equity Ledger) is a mobile-first Progressive
 - **Profile & About:** Demo profiles and version tracking.
 
 ## Technical Architecture
-- **Frontend Framework:** React 18+ constructed with functional components.
-- **Build Tool:** Vite + TypeScript.
-- **Styling:** Tailwind CSS for a scalable, mobile-first design system.
-- **Charting Engine:** Recharts (responsive Line, Area, and Pie charts).
-- **State Management:** Custom React Context store synchronizing with `localStorage`.
+- **Frontend Framework:** React 19 + TypeScript.
+- **Build Tool:** Vite.
+- **Styling:** Tailwind CSS (v4) with global theme classes supporting light and dark modes.
+- **Charting Engine:** Recharts (responsive Line, Area, and Pie charts dynamically styled based on light/dark modes).
+- **State Management:** Custom React Context store synchronizing with Firebase Firestore via real-time listeners (`onSnapshot`).
+- **Offline / Fallback Database:** A zero-dependency mock database (`localStorage` provider) inside `firebase.ts` that intercepts and handles auth/database actions offline if connection fails or is blocked.
 - **Routing:** React Router (`HashRouter` implementation) for stable PWA navigation.
 
-## Future Expansion Scenarios (for Antigravity transition)
-- **Cloud Backend:** Transitioning from `localStorage` to Firebase or Cloud SQL to allow multi-device sync and persistent user accounts.
-- **Automated Pricing:** Integration with an external API scraper for Caribbean asset prices to eliminate manual data entry.
-- **Auth:** OAuth 2.0 implementation to replace the simulated demo profile.
+## Implemented Architecture Enhancements
+- **Cloud Backend & Sync:** Transitioned to Firebase Firestore to allow multi-device sync and persistent user portfolios.
+- **Automated Regional Scrapers:** Developed standalone offline scraping pipelines (`bse_collector` and `gasci_collector`) in Python that fetch stock datasets, parse files, and populate a local SQLite instance before exporting to CSV.
+- **Node Seeding Utility**: Developed scripts in Node (`seed_local_firestore.ts`, `import_bse_prices.ts`) that import scraped CSV price data directly into local emulator Firestore or cloud dev.
+- **Authentication**: Native Google OAuth integrated via Firebase Authentication (supported by anonymous guest fallback for local testing and developer mode).
+- **Comprehensive Testing**: Setup a full suite containing 35 Vitest unit tests (covering store calculations, data formatters, and rendering components) alongside a Playwright E2E integration test suite running on Chromium and Mobile Safari viewports.

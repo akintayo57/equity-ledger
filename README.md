@@ -17,6 +17,7 @@ graph TD
     classDef main fill:#0c4a6e,stroke:#0284c7,stroke-width:2px,color:#fff;
     classDef data fill:#065f46,stroke:#059669,stroke-width:2px,color:#fff;
     classDef client fill:#701a75,stroke:#d946ef,stroke-width:2px,color:#fff;
+    classDef testing fill:#854d0e,stroke:#ca8a04,stroke-width:2px,color:#fff;
     
     A1[GASCI Website guyanastockexchangeinc.com] -->|Live Fetch / Scraping| B1[GASCI Collector]
     A2[BSE Website bse.com.bb] -->|Live CSV Download| B2[BSE Collector]
@@ -37,10 +38,17 @@ graph TD
     E2 -->|TypeScript Import| F
     
     F -->|Real-time Sync| G[Harbour Finance React App]
+    G -->|Sync Fail / Offline Fallback| H[(Local Storage Mock DB)]
+    
+    subgraph Testing Frameworks
+        I[Vitest Unit Tests] -->|Asserts State/Utils| G
+        J[Playwright E2E Tests] -->|Browser Automation| G
+    end
 
     class B1,B2,F main;
-    class C1,C2,D,E1,E2 data;
+    class C1,C2,D,E1,E2,H data;
     class G client;
+    class I,J testing;
 ```
 
 ---
@@ -51,10 +59,12 @@ Harbour Finance is a responsive web application that tracks portfolios in real-t
 
 ### Technical Stack
 * **Framework:** React 19 + TypeScript + Vite
-* **Styling:** Vanilla CSS + TailwindCSS (v4)
+* **Styling:** Vanilla CSS + TailwindCSS (v4) supporting Light and Dark modes
 * **State Management:** React Context API + Firestore real-time listeners (`onSnapshot`)
-* **Database & Auth:** Firebase Firestore, Firebase Authentication (Google OAuth)
-* **Visualization:** Recharts (responsive performance charts with Value/Return select toggles)
+* **Auth & Database:** Firebase Firestore, Firebase Authentication (Google OAuth)
+* **Offline / Local Fallback:** Zero-dependency mock Auth/Firestore client utilizing browser `localStorage` as a fallback
+* **Visualization:** Recharts (performance trend area charts and sector pie charts dynamically styled based on light/dark mode)
+* **E2E Testing:** Playwright (Chromium and Mobile Safari testing targeting Vite workstation mode)
 
 ### Execution Instructions
 
@@ -168,17 +178,29 @@ To upload raw CSV data to Firestore, execute the Node TypeScript seeding utiliti
 
 ---
 
-## 4. Unit Testing & Code Coverage
+## 4. Testing & Code Verification
 
-To verify screen rendering, React Context mutations, local storage fallbacks, and mathematical utilities:
+The repository contains two distinct testing suites to verify correctness, rendering states, and user journeys.
 
+### Unit Testing & Code Coverage (Vitest)
+Verifies component rendering, context store mutations, local storage fallbacks, and calculation utilities:
 ```bash
-# Run all tests once
+# Run all unit tests once
 npm run test:run
 
-# Run tests in interactive watch mode
+# Run unit tests in interactive watch mode
 npm run test
 
-# Run tests and generate code coverage report
+# Run unit tests and generate code coverage report
 npm run test:coverage
+```
+
+### End-to-End Testing (Playwright)
+Executes browser automation tests on Desktop Chromium and Mobile Safari emulators, simulating actual user journeys (login bypass, autocomplete search, watchlist toggle, theme switching):
+```bash
+# Run all E2E tests (automatically boots local workstation dev server)
+npm run test:e2e
+
+# Run E2E tests in headed mode to watch the browser actions
+npm run test:e2e -- --headed
 ```
