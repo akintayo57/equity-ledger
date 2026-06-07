@@ -153,7 +153,6 @@ describe('Markets screen tests', () => {
     // 3. Verify that Index Profile & Methodology view is rendered
     expect(screen.getByText('Index Profile & Methodology')).toBeInTheDocument();
     expect(screen.getByText('Guyana Stock Exchange')).toBeInTheDocument();
-    expect(screen.getByText(/Methodology: Equal-Weighted Price Index/i)).toBeInTheDocument();
     
     // Find the collapsible accordion toggle and click it
     const toggleBtn = screen.getByText(/Index Constituents & Weights/i);
@@ -161,6 +160,9 @@ describe('Markets screen tests', () => {
     await act(async () => {
       fireEvent.click(toggleBtn);
     });
+
+    // Verify methodology details are now visible inside expanded panel
+    expect(screen.getByText(/Methodology: Equal-Weighted Price Index/i)).toBeInTheDocument();
 
     // 4. Verify constituents are listed (e.g. GBTI is a constituent of GASCI)
     const constituentLink = screen.getByText(/Guyana Bank for Trade and Industry/i);

@@ -705,22 +705,6 @@ export const Markets = () => {
                 </div>
               </div>
 
-              {/* Methodology Explanation */}
-              <div className="p-4 border-b border-slate-100 dark:border-slate-800">
-                <div className="bg-slate-50 dark:bg-slate-950/40 rounded-xl p-3 border border-slate-150 dark:border-slate-800/80 text-xs text-slate-700 dark:text-slate-300 leading-relaxed space-y-2">
-                  <div className="font-semibold text-slate-900 dark:text-white flex items-center">
-                    <Info className="w-3.5 h-3.5 mr-1 text-blue-500" />
-                    Methodology: Equal-Weighted Price Index
-                  </div>
-                  <p>
-                    This index is constructed as a simple equal-weighted average of the closing prices of all constituent equities listed on the {selectedIndexMetadata.name}. The raw average is multiplied by a scaling factor of <strong>x{selectedIndexMetadata.scale}</strong> to align starting reference levels.
-                  </p>
-                  <p className="font-medium text-slate-850 dark:text-slate-200">
-                    Formula: Index Level = (Sum of Prices / N) &times; {selectedIndexMetadata.scale}
-                  </p>
-                </div>
-              </div>
-
               {/* Index Constituents Collapsible Dropdown Accordion */}
               <button
                 onClick={() => setIsCompositionExpanded(!isCompositionExpanded)}
@@ -740,27 +724,46 @@ export const Markets = () => {
               </button>
 
               {isCompositionExpanded && (
-                <div className="p-4 pt-0 divide-y divide-slate-100 dark:divide-slate-800 text-sm border-t border-slate-100 dark:border-slate-800">
-                  {securities.filter(s => s.exchangeId === selectedIndexId).map(sec => {
-                    const count = securities.filter(s => s.exchangeId === selectedIndexId).length;
-                    const weightPct = count > 0 ? (1 / count) * 100 : 0;
-                    return (
-                      <div key={sec.id} className="py-3 flex justify-between items-center hover:bg-slate-50/50 dark:hover:bg-slate-800/35 px-1 rounded-lg transition-colors">
-                        <button
-                          onClick={() => {
-                            setSelectedSecurity(sec);
-                            setSelectedIndexId(null);
-                          }}
-                          className="font-bold text-blue-600 dark:text-blue-400 hover:underline text-left cursor-pointer transition-colors"
-                        >
-                          {sec.ticker} <span className="font-normal text-xs text-slate-500 dark:text-slate-400 ml-1">— {sec.companyName}</span>
-                        </button>
-                        <span className="font-semibold text-slate-900 dark:text-white text-xs bg-slate-100 dark:bg-slate-800 px-2 py-0.5 rounded border border-slate-200/50 dark:border-slate-700/50">
-                          {weightPct.toFixed(1)}%
-                        </span>
+                <div className="border-t border-slate-100 dark:border-slate-800 divide-y divide-slate-100 dark:divide-slate-800">
+                  {/* Methodology Explanation */}
+                  <div className="p-4 bg-slate-50/30 dark:bg-slate-950/10">
+                    <div className="bg-slate-50 dark:bg-slate-950/40 rounded-xl p-3 border border-slate-150 dark:border-slate-800/80 text-xs text-slate-700 dark:text-slate-350 leading-relaxed space-y-2">
+                      <div className="font-semibold text-slate-900 dark:text-white flex items-center">
+                        <Info className="w-3.5 h-3.5 mr-1 text-blue-500" />
+                        Methodology: Equal-Weighted Price Index
                       </div>
-                    );
-                  })}
+                      <p>
+                        This index is constructed as a simple equal-weighted average of the closing prices of all constituent equities listed on the {selectedIndexMetadata.name}. The raw average is multiplied by a scaling factor of <strong>x{selectedIndexMetadata.scale}</strong> to align starting reference levels.
+                      </p>
+                      <p className="font-medium text-slate-850 dark:text-slate-200">
+                        Formula: Index Level = (Sum of Prices / N) &times; {selectedIndexMetadata.scale}
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* Index Constituents Table */}
+                  <div className="p-4 divide-y divide-slate-100 dark:divide-slate-800 text-sm">
+                    {securities.filter(s => s.exchangeId === selectedIndexId).map(sec => {
+                      const count = securities.filter(s => s.exchangeId === selectedIndexId).length;
+                      const weightPct = count > 0 ? (1 / count) * 100 : 0;
+                      return (
+                        <div key={sec.id} className="py-3 flex justify-between items-center hover:bg-slate-50/50 dark:hover:bg-slate-800/35 px-1 rounded-lg transition-colors">
+                          <button
+                            onClick={() => {
+                              setSelectedSecurity(sec);
+                              setSelectedIndexId(null);
+                            }}
+                            className="font-bold text-blue-600 dark:text-blue-400 hover:underline text-left cursor-pointer transition-colors"
+                          >
+                            {sec.ticker} <span className="font-normal text-xs text-slate-500 dark:text-slate-400 ml-1">— {sec.companyName}</span>
+                          </button>
+                          <span className="font-semibold text-slate-900 dark:text-white text-xs bg-slate-100 dark:bg-slate-800 px-2 py-0.5 rounded border border-slate-200/50 dark:border-slate-700/50">
+                            {weightPct.toFixed(1)}%
+                          </span>
+                        </div>
+                      );
+                    })}
+                  </div>
                 </div>
               )}
             </div>
