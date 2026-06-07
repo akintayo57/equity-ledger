@@ -133,6 +133,43 @@ describe('Markets screen tests', () => {
 
     expect(screen.getByText(/Session:/i)).toBeInTheDocument();
   });
+
+  it('should support clicking on an index card to view the index details, calculations, constituents, and navigate to constituent equity info', async () => {
+    renderWithContext(<Markets />);
+
+    await act(async () => {
+      await new Promise(resolve => setTimeout(resolve, 50));
+    });
+
+    // 1. Check that index cards are rendered
+    const gasciIndexCard = screen.getByText('GASCI Index');
+    expect(gasciIndexCard).toBeInTheDocument();
+
+    // 2. Click the GASCI Index Card
+    await act(async () => {
+      fireEvent.click(gasciIndexCard);
+    });
+
+    // 3. Verify that Index Profile & Methodology view is rendered
+    expect(screen.getByText('Index Profile & Methodology')).toBeInTheDocument();
+    expect(screen.getByText('Guyana Stock Exchange')).toBeInTheDocument();
+    expect(screen.getByText(/Methodology: Equal-Weighted Price Index/i)).toBeInTheDocument();
+    expect(screen.getByText('Index Constituents')).toBeInTheDocument();
+
+    // 4. Verify constituents are listed (e.g. GBTI is a constituent of GASCI)
+    const constituentLink = screen.getByText(/Guyana Bank for Trade and Industry/i);
+    expect(constituentLink).toBeInTheDocument();
+
+    // 5. Click on the constituent link
+    await act(async () => {
+      fireEvent.click(constituentLink);
+    });
+
+    // 6. Verify that it navigates/switches to the target equity profile card
+    expect(screen.getByText('Market Profile & Fundamentals')).toBeInTheDocument();
+    expect(screen.getByText(/Guyana Bank for Trade and Industry/i)).toBeInTheDocument();
+    expect(screen.queryByText('Index Profile & Methodology')).not.toBeInTheDocument();
+  });
 });
 
 describe('Portfolio tab switcher tests', () => {

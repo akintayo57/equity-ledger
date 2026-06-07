@@ -1,8 +1,8 @@
 import { ReactNode } from 'react';
 import { cn } from '../Layout';
 
-export const Card = ({ children, className }: { children: ReactNode; className?: string; key?: any }) => (
-  <div className={cn('bg-white dark:bg-slate-900 rounded-2xl shadow-sm border border-slate-100/90 dark:border-slate-800/80 overflow-hidden hover:shadow-md hover:border-slate-200/50 dark:hover:border-slate-700/50 transition-all duration-300', className)}>
+export const Card = ({ children, className, ...props }: { children: ReactNode; className?: string; key?: any; [key: string]: any }) => (
+  <div {...props} className={cn('bg-white dark:bg-slate-900 rounded-2xl shadow-sm border border-slate-100/90 dark:border-slate-800/80 overflow-hidden hover:shadow-md hover:border-slate-200/50 dark:hover:border-slate-700/50 transition-all duration-300', className)}>
     {children}
   </div>
 );
