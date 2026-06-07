@@ -1,7 +1,7 @@
 import { useStore } from '../store';
 import { Card, CardContent, Badge } from '../components/ui/Cards';
 import { formatMoney, formatPercentage } from '../utils';
-import { Star, TrendingUp, Newspaper, HelpCircle, ArrowUpRight, ArrowDownRight, Search, X, ArrowLeft, Info, Heart } from 'lucide-react';
+import { Star, TrendingUp, Newspaper, HelpCircle, ArrowUpRight, ArrowDownRight, Search, X, ArrowLeft, Info, Heart, ChevronDown, ChevronUp } from 'lucide-react';
 import { useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
@@ -24,6 +24,7 @@ export const Markets = () => {
   const [showDropdown, setShowDropdown] = useState(false);
   const [selectedSecurity, setSelectedSecurity] = useState<any | null>(null);
   const [selectedIndexId, setSelectedIndexId] = useState<'GASCI' | 'BSE' | 'JSE' | 'TTSE' | 'ECSE' | null>(null);
+  const [isCompositionExpanded, setIsCompositionExpanded] = useState(false);
   const [chartRange, setChartRange] = useState<'1M' | '3M' | '6M' | '1Y'>('6M');
 
   // Search query filter
@@ -720,16 +721,26 @@ export const Markets = () => {
                 </div>
               </div>
 
-              {/* Index Constituents Table */}
-              <div className="p-4 space-y-3">
-                <div className="flex justify-between items-center border-b border-slate-100 dark:border-slate-800 pb-2">
-                  <span className="text-xs font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest">Index Constituents</span>
-                  <span className="text-[10px] font-semibold text-slate-500 dark:text-slate-400">
+              {/* Index Constituents Collapsible Dropdown Accordion */}
+              <button
+                onClick={() => setIsCompositionExpanded(!isCompositionExpanded)}
+                className="w-full px-4 py-3 flex justify-between items-center bg-slate-50/30 dark:bg-slate-950/10 border-t border-slate-100 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-850/50 transition-colors duration-200 text-left font-bold text-xs text-slate-400 dark:text-slate-500 uppercase tracking-widest cursor-pointer"
+              >
+                <span className="flex items-center">
+                  Index Constituents & Weights
+                  <span className="text-[10px] font-semibold text-slate-500 dark:text-slate-400 bg-slate-100 dark:bg-slate-800 px-2 py-0.5 rounded ml-2 normal-case tracking-normal border border-slate-200/40 dark:border-slate-700/20">
                     {securities.filter(s => s.exchangeId === selectedIndexId).length} Equities
                   </span>
-                </div>
+                </span>
+                {isCompositionExpanded ? (
+                  <ChevronUp className="w-4 h-4 text-slate-400 dark:text-slate-500" />
+                ) : (
+                  <ChevronDown className="w-4 h-4 text-slate-400 dark:text-slate-500" />
+                )}
+              </button>
 
-                <div className="divide-y divide-slate-100 dark:divide-slate-800 text-sm">
+              {isCompositionExpanded && (
+                <div className="p-4 pt-0 divide-y divide-slate-100 dark:divide-slate-800 text-sm border-t border-slate-100 dark:border-slate-800">
                   {securities.filter(s => s.exchangeId === selectedIndexId).map(sec => {
                     const count = securities.filter(s => s.exchangeId === selectedIndexId).length;
                     const weightPct = count > 0 ? (1 / count) * 100 : 0;
@@ -751,7 +762,7 @@ export const Markets = () => {
                     );
                   })}
                 </div>
-              </div>
+              )}
             </div>
           </Card>
 
@@ -786,7 +797,10 @@ export const Markets = () => {
                 return (
                   <Card 
                     key={cardInfo.id}
-                    onClick={() => setSelectedIndexId(cardInfo.id)}
+                    onClick={() => {
+                      setSelectedIndexId(cardInfo.id);
+                      setIsCompositionExpanded(false);
+                    }}
                     className="bg-white dark:bg-slate-900 border-slate-100 dark:border-slate-800 text-slate-900 dark:text-white relative overflow-hidden group transition-colors duration-300 cursor-pointer hover:border-blue-400 dark:hover:border-blue-500 select-none"
                   >
                     <div className="absolute top-0 right-0 p-6 text-slate-100/10 dark:text-slate-800/10 font-extrabold text-5xl pointer-events-none select-none">{cardInfo.flag}</div>

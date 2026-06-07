@@ -154,7 +154,13 @@ describe('Markets screen tests', () => {
     expect(screen.getByText('Index Profile & Methodology')).toBeInTheDocument();
     expect(screen.getByText('Guyana Stock Exchange')).toBeInTheDocument();
     expect(screen.getByText(/Methodology: Equal-Weighted Price Index/i)).toBeInTheDocument();
-    expect(screen.getByText('Index Constituents')).toBeInTheDocument();
+    
+    // Find the collapsible accordion toggle and click it
+    const toggleBtn = screen.getByText(/Index Constituents & Weights/i);
+    expect(toggleBtn).toBeInTheDocument();
+    await act(async () => {
+      fireEvent.click(toggleBtn);
+    });
 
     // 4. Verify constituents are listed (e.g. GBTI is a constituent of GASCI)
     const constituentLink = screen.getByText(/Guyana Bank for Trade and Industry/i);
