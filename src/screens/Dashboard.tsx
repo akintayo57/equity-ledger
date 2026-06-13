@@ -26,7 +26,7 @@ export const Dashboard = () => {
 
   const isGreen = portfolioSummary.unrealizedGainUSD >= 0;
 
-  const [chartRange, setChartRange] = useState<'1M' | '3M' | '6M' | '1Y'>('6M');
+  const [chartRange, setChartRange] = useState<'1M' | '3M' | '6M' | '1Y' | 'ALL'>('6M');
   const [metric, setMetric] = useState<'VALUE' | 'RETURN'>('VALUE');
 
   // Sector Allocation Data
@@ -168,6 +168,13 @@ export const Dashboard = () => {
       steps = 12; // monthly
       getLabel = (d: Date) => format(d, 'MMM yy');
       subFunc = subMonths;
+    } else if (chartRange === 'ALL') {
+      const txDates = transactions.map(t => new Date(t.date).getTime());
+      const oldestTxTime = txDates.length > 0 ? Math.min(...txDates) : Date.now() - 365 * 86400000;
+      const intervalMs = (Date.now() - oldestTxTime) / 12;
+      steps = 12;
+      getLabel = (d: Date) => format(d, 'MMM yy');
+      subFunc = (d: Date, amount: number) => new Date(d.getTime() - amount * intervalMs);
     }
 
     for (let i = steps; i >= 0; i--) {
@@ -344,9 +351,8 @@ export const Dashboard = () => {
                 </button>
               </div>
             </div>
-            
             <div className="flex bg-slate-100 dark:bg-slate-800/50 rounded-lg p-0.5 space-x-1 self-start sm:self-center border border-transparent dark:border-slate-700/30">
-              {(['1M', '3M', '6M', '1Y'] as const).map(range => (
+              {(['1M', '3M', '6M', '1Y', 'ALL'] as const).map(range => (
                 <button
                   key={range}
                   onClick={() => setChartRange(range)}

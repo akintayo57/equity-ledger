@@ -27,7 +27,7 @@ export const Markets = () => {
   const [selectedSecurity, setSelectedSecurity] = useState<any | null>(null);
   const [selectedIndexId, setSelectedIndexId] = useState<'GASCI' | 'BSE' | 'JSE' | 'TTSE' | 'ECSE' | null>(null);
   const [isCompositionExpanded, setIsCompositionExpanded] = useState(false);
-  const [chartRange, setChartRange] = useState<'1M' | '3M' | '6M' | '1Y'>('6M');
+  const [chartRange, setChartRange] = useState<'1M' | '3M' | '6M' | '1Y' | 'ALL'>('6M');
 
   // Search query filter
   const searchResults = useMemo(() => {
@@ -104,15 +104,19 @@ export const Markets = () => {
     let daysToLookBack = 180;
     let getLabel = (d: Date) => format(d, 'MMM dd');
 
+    let startDate: Date | null = null;
     if (chartRange === '1M') { daysToLookBack = 30; getLabel = (d: Date) => format(d, 'dd MMM'); }
     else if (chartRange === '3M') { daysToLookBack = 90; getLabel = (d: Date) => format(d, 'dd MMM'); }
     else if (chartRange === '6M') { daysToLookBack = 180; getLabel = (d: Date) => format(d, 'MMM yy'); }
     else if (chartRange === '1Y') { daysToLookBack = 365; getLabel = (d: Date) => format(d, 'MMM yy'); }
+    else if (chartRange === 'ALL') { daysToLookBack = Infinity; getLabel = (d: Date) => format(d, 'MMM yy'); }
 
-    const startDate = new Date(Date.now() - daysToLookBack * 86400000);
+    if (daysToLookBack !== Infinity) {
+      startDate = new Date(Date.now() - daysToLookBack * 86400000);
+    }
     
     const filteredRealData = selectedSecPrices
-      .filter(p => new Date(p.date) >= startDate)
+      .filter(p => !startDate || new Date(p.date) >= startDate)
       .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
 
     if (filteredRealData.length > 0) {
@@ -122,8 +126,9 @@ export const Markets = () => {
       }));
 
       if (data.length === 1) {
+        const fallbackDate = startDate || new Date(Date.now() - 30 * 86400000);
         return [
-          { date: getLabel(startDate), price: data[0].price },
+          { date: getLabel(fallbackDate), price: data[0].price },
           data[0]
         ];
       }
@@ -131,8 +136,9 @@ export const Markets = () => {
     }
 
     const fallbackPrice = selectedLastPrice || 0;
+    const fallbackDate = startDate || new Date(Date.now() - 30 * 86400000);
     return [
-      { date: getLabel(startDate), price: fallbackPrice },
+      { date: getLabel(fallbackDate), price: fallbackPrice },
       { date: getLabel(new Date()), price: fallbackPrice }
     ];
   }, [selectedSecPrices, selectedLastPrice, chartRange, selectedSecurity]);
@@ -201,16 +207,20 @@ export const Markets = () => {
     let daysToLookBack = 180;
     let getLabel = (d: Date) => format(d, 'MMM dd');
 
+    let startDateStr = '';
     if (chartRange === '1M') { daysToLookBack = 30; getLabel = (d: Date) => format(d, 'dd MMM'); }
     else if (chartRange === '3M') { daysToLookBack = 90; getLabel = (d: Date) => format(d, 'dd MMM'); }
     else if (chartRange === '6M') { daysToLookBack = 180; getLabel = (d: Date) => format(d, 'MMM yy'); }
     else if (chartRange === '1Y') { daysToLookBack = 365; getLabel = (d: Date) => format(d, 'MMM yy'); }
+    else if (chartRange === 'ALL') { daysToLookBack = Infinity; getLabel = (d: Date) => format(d, 'MMM yy'); }
 
-    const startDate = new Date(Date.now() - daysToLookBack * 86400000);
-    const startDateStr = format(startDate, 'yyyy-MM-dd');
+    if (daysToLookBack !== Infinity) {
+      const startDate = new Date(Date.now() - daysToLookBack * 86400000);
+      startDateStr = format(startDate, 'yyyy-MM-dd');
+    }
 
     const filtered = indexHistory
-      .filter(h => h.indexId === selectedIndexId && h.date >= startDateStr)
+      .filter(h => h.indexId === selectedIndexId && (!startDateStr || h.date >= startDateStr))
       .sort((a, b) => a.date.localeCompare(b.date));
 
     return filtered.map(h => ({
@@ -516,7 +526,7 @@ export const Markets = () => {
                 <div className="flex justify-between items-center">
                   <span className="text-xs font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest">Price History</span>
                   <div className="flex bg-slate-100 dark:bg-slate-800 rounded-lg p-0.5 space-x-1">
-                    {(['1M', '3M', '6M', '1Y'] as const).map(range => (
+                    {(['1M', '3M', '6M', '1Y', 'ALL'] as const).map(range => (
                       <button
                         key={range}
                         onClick={() => setChartRange(range)}
@@ -644,7 +654,7 @@ export const Markets = () => {
                 <div className="flex justify-between items-center">
                   <span className="text-xs font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest">Index Trend</span>
                   <div className="flex bg-slate-100 dark:bg-slate-800 rounded-lg p-0.5 space-x-1">
-                    {(['1M', '3M', '6M', '1Y'] as const).map(range => (
+                    {(['1M', '3M', '6M', '1Y', 'ALL'] as const).map(range => (
                       <button
                         key={range}
                         onClick={() => setChartRange(range)}
