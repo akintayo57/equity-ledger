@@ -297,7 +297,7 @@ export const Dashboard = () => {
               <Link 
                 to={`/holdings/${h.security.id}`} 
                 key={h.security.id} 
-                className="flex justify-between items-center hover:bg-slate-50/80 dark:hover:bg-slate-800/50 p-2.5 -mx-2.5 rounded-xl transition-all block cursor-pointer"
+                className="flex justify-between items-center w-full hover:bg-slate-50/80 dark:hover:bg-slate-800/50 p-2.5 -mx-2.5 rounded-xl transition-all cursor-pointer"
               >
                 <div>
                   <div className="font-extrabold text-slate-900 dark:text-white text-sm tracking-tight">{h.security.ticker}</div>
@@ -510,7 +510,7 @@ export const Dashboard = () => {
                   <Link 
                     to={`/holdings/${g.security.id}`} 
                     key={g.security.id} 
-                    className="flex justify-between items-center hover:bg-slate-50 dark:hover:bg-slate-800/40 p-2 -mx-2 rounded-lg transition-colors block cursor-pointer"
+                    className="flex justify-between items-center w-full hover:bg-slate-50 dark:hover:bg-slate-800/40 p-2 -mx-2 rounded-lg transition-colors cursor-pointer"
                   >
                     <span className="font-bold text-slate-900 dark:text-white text-xs tracking-tight">{g.security.ticker}</span>
                     <span className="text-emerald-600 dark:text-emerald-400 text-xs font-black">+{formatPercentage(g.unrealizedGainLossPctUSD)}</span>
@@ -531,7 +531,7 @@ export const Dashboard = () => {
                   <Link 
                     to={`/holdings/${l.security.id}`} 
                     key={l.security.id} 
-                    className="flex justify-between items-center hover:bg-slate-50 dark:hover:bg-slate-800/40 p-2 -mx-2 rounded-lg transition-colors block cursor-pointer"
+                    className="flex justify-between items-center w-full hover:bg-slate-50 dark:hover:bg-slate-800/40 p-2 -mx-2 rounded-lg transition-colors cursor-pointer"
                   >
                     <span className="font-bold text-slate-900 dark:text-white text-xs tracking-tight">{l.security.ticker}</span>
                     <span className="text-rose-600 dark:text-rose-400 text-xs font-black">{formatPercentage(l.unrealizedGainLossPctUSD)}</span>

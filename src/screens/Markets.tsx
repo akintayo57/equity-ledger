@@ -863,7 +863,7 @@ export const Markets = () => {
                           <Link 
                             to={`/holdings/${mover.security.id}`}
                             key={mover.security.id}
-                            className="flex justify-between items-center hover:bg-slate-50/80 dark:hover:bg-slate-800/50 p-2.5 -mx-2.5 rounded-xl transition-all block cursor-pointer"
+                            className="flex justify-between items-center w-full hover:bg-slate-50/80 dark:hover:bg-slate-800/50 p-2.5 -mx-2.5 rounded-xl transition-all cursor-pointer"
                           >
                             <div className="flex items-center space-x-3 min-w-0">
                               {/* Watchlist Star */}
@@ -927,7 +927,7 @@ export const Markets = () => {
                           <Link 
                             to={`/holdings/${mover.security.id}`}
                             key={mover.security.id}
-                            className="flex justify-between items-center hover:bg-slate-50/80 dark:hover:bg-slate-800/50 p-2.5 -mx-2.5 rounded-xl transition-all block cursor-pointer"
+                            className="flex justify-between items-center w-full hover:bg-slate-50/80 dark:hover:bg-slate-800/50 p-2.5 -mx-2.5 rounded-xl transition-all cursor-pointer"
                           >
                             <div className="flex items-center space-x-3 min-w-0">
                               {/* Watchlist Star */}
