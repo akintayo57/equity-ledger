@@ -885,7 +885,7 @@ export const Markets = () => {
                                     {mover.security.exchangeId}
                                   </Badge>
                                 </div>
-                                <div className="text-[11px] text-slate-450 dark:text-slate-400 truncate max-w-[130px] mt-0.5">
+                                <div className="text-[11px] text-slate-450 dark:text-slate-400 truncate max-w-[130px] sm:max-w-[280px] md:max-w-[180px] lg:max-w-[280px] xl:max-w-[380px] mt-0.5">
                                   {mover.security.companyName}
                                 </div>
                               </div>
@@ -949,7 +949,7 @@ export const Markets = () => {
                                     {mover.security.exchangeId}
                                   </Badge>
                                 </div>
-                                <div className="text-[11px] text-slate-450 dark:text-slate-400 truncate max-w-[130px] mt-0.5">
+                                <div className="text-[11px] text-slate-450 dark:text-slate-400 truncate max-w-[130px] sm:max-w-[280px] md:max-w-[180px] lg:max-w-[280px] xl:max-w-[380px] mt-0.5">
                                   {mover.security.companyName}
                                 </div>
                               </div>
