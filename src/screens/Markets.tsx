@@ -845,7 +845,7 @@ export const Markets = () => {
                 </div>
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="grid grid-cols-1 gap-6">
                 {/* Gainers Column */}
                 <div>
                   <div className="text-xs font-bold text-emerald-600 dark:text-emerald-450 uppercase tracking-widest mb-3 border-b border-slate-50 dark:border-slate-800 pb-1.5 flex items-center gap-1">
