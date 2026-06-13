@@ -69,6 +69,10 @@ const StoreConsumer = () => {
       >
         Toggle Theme
       </button>
+
+      <div data-testid="indices-count">Indices: {store.indices.length}</div>
+      <div data-testid="index-history-count">IndexHistory: {store.indexHistory.length}</div>
+      <button onClick={() => store.backfillIndices()} data-testid="backfill-btn">Backfill</button>
     </div>
   );
 };
@@ -173,5 +177,36 @@ describe('global state store tests', () => {
 
     // LocalStorage should persist the preferred theme
     expect(localStorage.getItem('harbour_theme')).toBe(expectedToggledTheme);
+  });
+
+  it('should initialize and support backfilling index history', async () => {
+    render(
+      <StoreProvider user={mockUser}>
+        <StoreConsumer />
+      </StoreProvider>
+    );
+
+    await act(async () => {
+      await new Promise(resolve => setTimeout(resolve, 50));
+    });
+
+    // Default indices should be loaded
+    expect(screen.getByTestId('indices-count')).toHaveTextContent('Indices: 5');
+
+    // Initially the mock store provider useEffect triggers auto-backfill on initialization
+    // So IndexHistory should be populated!
+    const historyCountStr = screen.getByTestId('index-history-count').textContent || 'IndexHistory: 0';
+    const historyCount = parseInt(historyCountStr.replace('IndexHistory: ', ''));
+    expect(historyCount).toBeGreaterThan(0);
+
+    // Let's trigger backfill manually and expect it to execute without errors
+    const backfillBtn = screen.getByTestId('backfill-btn');
+    await act(async () => {
+      fireEvent.click(backfillBtn);
+      await new Promise(resolve => setTimeout(resolve, 50));
+    });
+
+    // It should still be populated
+    expect(screen.getByTestId('index-history-count')).toHaveTextContent(/IndexHistory: \d+/);
   });
 });

@@ -35,13 +35,13 @@ test.describe('Harbour Finance Core User Journey', () => {
     // Assert that we have landed on the Markets page
     await expect(page.getByRole('heading', { name: 'Markets' })).toBeVisible();
 
-    // 2. Search for GBTI
+    // 2. Search for BTI
     const searchInput = page.getByPlaceholder('Search all equities across exchanges...');
     await expect(searchInput).toBeVisible();
-    await searchInput.fill('GBTI');
+    await searchInput.fill('BTI');
 
     // Wait for dropdown result and click it
-    const dropdownItem = page.locator('button:has-text("GBTI")').first();
+    const dropdownItem = page.locator('button:has-text("BTI")').first();
     await expect(dropdownItem).toBeVisible();
     await dropdownItem.click();
 
@@ -76,8 +76,8 @@ test.describe('Harbour Finance Core User Journey', () => {
     const watchlistTab = page.getByRole('button', { name: 'Watchlist' });
     await watchlistTab.click();
 
-    // Assert that GBTI is visible in the watchlist (.first() avoids conflict with Recharts charts legends)
-    await expect(page.getByText('GBTI').first()).toBeVisible();
+    // Assert that BTI is visible in the watchlist (.first() avoids conflict with Recharts charts legends)
+    await expect(page.getByText('BTI').first()).toBeVisible();
 
     // 5. Navigate to Settings via top header Settings link
     const settingsLink = page.getByTitle('Settings');

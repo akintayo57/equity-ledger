@@ -15,6 +15,8 @@ export const Markets = () => {
     equityNotes,
     watchlist, 
     toggleWatchlist,
+    indices,
+    indexHistory,
     theme
   } = useStore();
 
@@ -142,52 +144,25 @@ export const Markets = () => {
     return ex ? ex.currency : 'USD';
   };
 
-  // Dynamic Index calculations for all five exchanges
-  const indices = useMemo(() => {
-    const calculateIndex = (exchangeId: string, scale: number) => {
-      const secList = securities.filter(s => s.exchangeId === exchangeId);
-      if (secList.length === 0) return { value: 0, change: 0, changePct: 0 };
-      
-      let currentSum = 0;
-      let prevSum = 0;
-      let currentCount = 0;
-      let prevCount = 0;
-      
-      secList.forEach(sec => {
-        const secPrices = prices.filter(p => p.securityId === sec.id).sort((a, b) => b.date.localeCompare(a.date));
-        if (secPrices.length >= 1) {
-          currentSum += secPrices[0].price;
-          currentCount++;
-        }
-        if (secPrices.length >= 2) {
-          prevSum += secPrices[1].price;
-          prevCount++;
-        } else if (secPrices.length === 1) {
-          prevSum += secPrices[0].price;
-          prevCount++;
-        }
-      });
-      
-      const currentValue = currentCount > 0 ? (currentSum / currentCount) * scale : 0;
-      const prevValue = prevCount > 0 ? (prevSum / prevCount) * scale : 0;
-      const change = currentValue - prevValue;
-      const changePct = prevValue > 0 ? (change / prevValue) * 100 : 0;
-      
-      return {
-        value: currentValue,
-        change,
-        changePct
-      };
-    };
-
-    return {
-      GASCI: calculateIndex('GASCI', 10),
-      BSE: calculateIndex('BSE', 1000),
-      JSE: calculateIndex('JSE', 100),
-      TTSE: calculateIndex('TTSE', 100),
-      ECSE: calculateIndex('ECSE', 100)
-    };
-  }, [securities, prices]);
+  // Derived summary from stored indexHistory for all indices
+  const indicesSummary = useMemo(() => {
+    const summary: Record<string, { value: number; change: number; changePct: number }> = {};
+    indices.forEach(idx => {
+      const hist = indexHistory
+        .filter(h => h.indexId === idx.id)
+        .sort((a, b) => a.date.localeCompare(b.date));
+      if (hist.length >= 1) {
+        const current = hist[hist.length - 1].value;
+        const prev = hist.length >= 2 ? hist[hist.length - 2].value : current;
+        const change = current - prev;
+        const changePct = prev > 0 ? (change / prev) * 100 : 0;
+        summary[idx.id] = { value: current, change, changePct };
+      } else {
+        summary[idx.id] = { value: 0, change: 0, changePct: 0 };
+      }
+    });
+    return summary;
+  }, [indices, indexHistory]);
 
 
   // Find the latest price date for each exchange
@@ -219,33 +194,9 @@ export const Markets = () => {
     return dates.reduce((latest, current) => current > latest ? current : latest, dates[0]);
   }, [latestDateByExchange]);
 
-  // Dynamic Index History calculation for selected exchange
+  // Stored Index History for selected exchange
   const selectedIndexHistory = useMemo(() => {
     if (!selectedIndexId) return [];
-
-    const constituents = securities.filter(s => s.exchangeId === selectedIndexId);
-    if (constituents.length === 0) return [];
-
-    const constituentIds = new Set(constituents.map(c => c.id));
-    const exchangePrices = prices.filter(p => constituentIds.has(p.securityId));
-    if (exchangePrices.length === 0) return [];
-
-    const uniqueDates = Array.from(new Set(exchangePrices.map(p => p.date))).sort();
-
-    const priceMap = new Map<string, { date: string; price: number }[]>();
-    constituents.forEach(sec => {
-      const secPrices = exchangePrices
-        .filter(p => p.securityId === sec.id)
-        .sort((a, b) => a.date.localeCompare(b.date));
-      priceMap.set(sec.id, secPrices);
-    });
-
-    let scale = 100;
-    if (selectedIndexId === 'GASCI') scale = 10;
-    else if (selectedIndexId === 'BSE') scale = 1000;
-    else if (selectedIndexId === 'JSE') scale = 100;
-    else if (selectedIndexId === 'TTSE') scale = 100;
-    else if (selectedIndexId === 'ECSE') scale = 100;
 
     let daysToLookBack = 180;
     let getLabel = (d: Date) => format(d, 'MMM dd');
@@ -258,71 +209,64 @@ export const Markets = () => {
     const startDate = new Date(Date.now() - daysToLookBack * 86400000);
     const startDateStr = format(startDate, 'yyyy-MM-dd');
 
-    const filteredDates = uniqueDates.filter(d => d >= startDateStr);
+    const filtered = indexHistory
+      .filter(h => h.indexId === selectedIndexId && h.date >= startDateStr)
+      .sort((a, b) => a.date.localeCompare(b.date));
 
-    const history = filteredDates.map(date => {
-      let sum = 0;
-      let count = 0;
-      constituents.forEach(sec => {
-        const secPrices = priceMap.get(sec.id) || [];
-        const priceObj = secPrices.filter(p => p.date <= date).pop();
-        if (priceObj) {
-          sum += priceObj.price;
-          count++;
-        }
-      });
-      const val = count > 0 ? (sum / count) * scale : 0;
-      return {
-        date: getLabel(new Date(date)),
-        rawValue: val
-      };
-    }).filter(d => d.rawValue > 0);
-
-    return history;
-  }, [selectedIndexId, securities, prices, chartRange]);
+    return filtered.map(h => ({
+      date: getLabel(new Date(h.date)),
+      rawValue: h.value
+    }));
+  }, [selectedIndexId, indexHistory, chartRange]);
 
   const selectedIndexMetadata = useMemo(() => {
     if (!selectedIndexId) return null;
-    const ex = exchanges.find(e => e.id === selectedIndexId) || {
-      id: selectedIndexId,
-      name: selectedIndexId === 'GASCI' ? 'Guyana Stock Exchange' :
-            selectedIndexId === 'BSE' ? 'Barbados Stock Exchange' :
-            selectedIndexId === 'JSE' ? 'Jamaica Stock Exchange' :
-            selectedIndexId === 'TTSE' ? 'Trinidad & Tobago Stock Exchange' :
-            selectedIndexId === 'ECSE' ? 'Eastern Caribbean Securities Exchange' : 'Unknown Stock Exchange',
-      country: selectedIndexId === 'GASCI' ? 'Guyana' :
-               selectedIndexId === 'BSE' ? 'Barbados' :
-               selectedIndexId === 'JSE' ? 'Jamaica' :
-               selectedIndexId === 'TTSE' ? 'Trinidad & Tobago' :
-               selectedIndexId === 'ECSE' ? 'Eastern Caribbean' : 'Unknown',
-      currency: selectedIndexId === 'GASCI' ? 'GYD' :
-                selectedIndexId === 'BSE' ? 'BBD' :
-                selectedIndexId === 'JSE' ? 'JMD' :
-                selectedIndexId === 'TTSE' ? 'TTD' :
-                selectedIndexId === 'ECSE' ? 'XCD' : 'USD'
+    const indexDef = indices.find(idx => idx.id === selectedIndexId);
+    if (!indexDef) return null;
+
+    const ex = exchanges.find(e => e.id === indexDef.exchangeId) || {
+      name: indexDef.id === 'GASCI' ? 'Guyana Stock Exchange' :
+            indexDef.id === 'BSE' ? 'Barbados Stock Exchange' :
+            indexDef.id === 'JSE' ? 'Jamaica Stock Exchange' :
+            indexDef.id === 'TTSE' ? 'Trinidad & Tobago Stock Exchange' :
+            indexDef.id === 'ECSE' ? 'Eastern Caribbean Securities Exchange' : 'Unknown Stock Exchange',
+      country: indexDef.id === 'GASCI' ? 'Guyana' :
+               indexDef.id === 'BSE' ? 'Barbados' :
+               indexDef.id === 'JSE' ? 'Jamaica' :
+               indexDef.id === 'TTSE' ? 'Trinidad & Tobago' :
+               indexDef.id === 'ECSE' ? 'Eastern Caribbean' : 'Unknown',
+      currency: indexDef.id === 'GASCI' ? 'GYD' :
+                indexDef.id === 'BSE' ? 'BBD' :
+                indexDef.id === 'JSE' ? 'JMD' :
+                indexDef.id === 'TTSE' ? 'TTD' :
+                indexDef.id === 'ECSE' ? 'XCD' : 'USD'
     };
 
-    const exIndexInfo = indices[selectedIndexId];
+    const exIndexInfo = indicesSummary[selectedIndexId] || { value: 0, change: 0, changePct: 0 };
 
-    // Find latest pricing date for this exchange
-    const latestDate = latestDateByExchange[selectedIndexId] || 'N/A';
-
-    // Scale Factor
-    const scale = selectedIndexId === 'GASCI' ? 10 :
-                  selectedIndexId === 'BSE' ? 1000 : 100;
+    // Find latest pricing date for this exchange in history
+    const hist = indexHistory
+      .filter(h => h.indexId === selectedIndexId)
+      .sort((a, b) => a.date.localeCompare(b.date));
+    const latestDate = hist.length > 0 ? hist[hist.length - 1].date : 'N/A';
 
     return {
       id: selectedIndexId,
       name: ex.name,
       country: ex.country,
       currency: ex.currency,
-      value: exIndexInfo ? exIndexInfo.value : 0,
-      change: exIndexInfo ? exIndexInfo.change : 0,
-      changePct: exIndexInfo ? exIndexInfo.changePct : 0,
+      value: exIndexInfo.value,
+      change: exIndexInfo.change,
+      changePct: exIndexInfo.changePct,
       latestDate,
-      scale
+      scale: indexDef.scale
     };
-  }, [selectedIndexId, exchanges, indices, latestDateByExchange]);
+  }, [selectedIndexId, indices, indexHistory, exchanges, indicesSummary]);
+
+  const activeIndexDef = useMemo(() => {
+    if (!selectedIndexId) return null;
+    return indices.find(idx => idx.id === selectedIndexId);
+  }, [selectedIndexId, indices]);
 
   // Market Movers calculations for all listed stocks (strictly based on the latest session date of their exchange)
   const allMovers = useMemo(() => {
@@ -464,7 +408,14 @@ export const Markets = () => {
                    className="w-full px-4 py-3 flex justify-between items-center hover:bg-slate-50 dark:hover:bg-slate-800 text-left transition-colors cursor-pointer"
                 >
                   <div>
-                    <div className="font-extrabold text-sm text-slate-900 dark:text-white">{sec.ticker}</div>
+                    <div className="font-extrabold text-sm text-slate-900 dark:text-white flex items-center">
+                      {sec.ticker}
+                      {sec.status === 'INACTIVE' && (
+                        <span className="ml-1.5 inline-flex items-center px-1 py-0.2 rounded text-[8px] font-bold bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-400 border border-slate-200/40 dark:border-slate-700/30 normal-case tracking-normal">
+                          Defunct
+                        </span>
+                      )}
+                    </div>
                     <div className="text-xs text-slate-500 dark:text-slate-400 truncate max-w-[200px] sm:max-w-xs">{sec.companyName}</div>
                   </div>
                   <Badge variant={sec.exchangeId === 'GASCI' ? 'blue' : 'yellow'}>{sec.exchangeId}</Badge>
@@ -480,7 +431,14 @@ export const Markets = () => {
           <Card className="overflow-hidden border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 transition-colors duration-300">
             <div className="w-full p-4 flex justify-between items-center bg-white dark:bg-slate-900 border-b border-slate-100 dark:border-slate-800">
               <div>
-                <span className="font-bold text-sm text-slate-900 dark:text-white">Market Profile & Fundamentals</span>
+                <span className="font-bold text-sm text-slate-900 dark:text-white flex items-center">
+                  Market Profile & Fundamentals
+                  {selectedSecurity.status === 'INACTIVE' && (
+                    <span className="ml-2 inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-bold bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-400 border border-slate-200 dark:border-slate-700 normal-case tracking-normal">
+                      Defunct
+                    </span>
+                  )}
+                </span>
                 <p className="text-[11px] text-slate-400 dark:text-slate-500 mt-0.5">{selectedSecurity.companyName} • {selectedExInfo?.exchangeName}</p>
               </div>
               <div className="flex items-center space-x-3 shrink-0">
@@ -512,6 +470,17 @@ export const Markets = () => {
             </div>
 
             <div className="bg-white dark:bg-slate-900">
+              {selectedSecurity.status === 'INACTIVE' && (
+                <div className="mx-4 mt-4 p-3 bg-slate-50 dark:bg-slate-950/20 border border-slate-200 dark:border-slate-800 rounded-xl text-xs text-slate-650 dark:text-slate-400 flex items-start space-x-2.5 leading-normal">
+                  <Info className="w-4 h-4 text-slate-400 shrink-0 mt-0.5" />
+                  <div>
+                    <div className="font-bold text-slate-900 dark:text-white">Delisted / Defunct Equity</div>
+                    <p className="mt-0.5">
+                      This security is no longer actively listed or traded. Historical data is preserved for ledger consistency.
+                    </p>
+                  </div>
+                </div>
+              )}
               {/* 2.1 Metadata Details */}
               <div className="p-4 bg-slate-50/50 dark:bg-slate-950/20 space-y-3 border-b border-slate-100 dark:border-slate-800">
                 <div className="flex justify-between items-center text-xs">
@@ -713,7 +682,7 @@ export const Markets = () => {
                 <span className="flex items-center">
                   Index Constituents & Weights
                   <span className="text-[10px] font-semibold text-slate-500 dark:text-slate-400 bg-slate-100 dark:bg-slate-800 px-2 py-0.5 rounded ml-2 normal-case tracking-normal border border-slate-200/40 dark:border-slate-700/20">
-                    {securities.filter(s => s.exchangeId === selectedIndexId).length} Equities
+                    {(activeIndexDef?.constituentIds || []).length} Equities
                   </span>
                 </span>
                 {isCompositionExpanded ? (
@@ -743,26 +712,34 @@ export const Markets = () => {
 
                   {/* Index Constituents Table */}
                   <div className="p-4 divide-y divide-slate-100 dark:divide-slate-800 text-sm">
-                    {securities.filter(s => s.exchangeId === selectedIndexId).map(sec => {
-                      const count = securities.filter(s => s.exchangeId === selectedIndexId).length;
-                      const weightPct = count > 0 ? (1 / count) * 100 : 0;
-                      return (
-                        <div key={sec.id} className="py-3 flex justify-between items-center hover:bg-slate-50/50 dark:hover:bg-slate-800/35 px-1 rounded-lg transition-colors">
-                          <button
-                            onClick={() => {
-                              setSelectedSecurity(sec);
-                              setSelectedIndexId(null);
-                            }}
-                            className="font-bold text-blue-600 dark:text-blue-400 hover:underline text-left cursor-pointer transition-colors"
-                          >
-                            {sec.ticker} <span className="font-normal text-xs text-slate-500 dark:text-slate-400 ml-1">— {sec.companyName}</span>
-                          </button>
-                          <span className="font-semibold text-slate-900 dark:text-white text-xs bg-slate-100 dark:bg-slate-800 px-2 py-0.5 rounded border border-slate-200/50 dark:border-slate-700/50">
-                            {weightPct.toFixed(1)}%
-                          </span>
-                        </div>
-                      );
-                    })}
+                    {securities
+                      .filter(s => activeIndexDef?.constituentIds.includes(s.id))
+                      .map(sec => {
+                        const count = activeIndexDef?.constituentIds.length || 1;
+                        const weightPct = (1 / count) * 100;
+                        return (
+                          <div key={sec.id} className="py-3 flex justify-between items-center hover:bg-slate-55/50 dark:hover:bg-slate-800/35 px-1 rounded-lg transition-colors">
+                            <button
+                              onClick={() => {
+                                setSelectedSecurity(sec);
+                                setSelectedIndexId(null);
+                              }}
+                              className="font-bold text-blue-600 dark:text-blue-400 hover:underline text-left cursor-pointer transition-colors"
+                            >
+                              {sec.ticker}
+                              {sec.status === 'INACTIVE' && (
+                                <span className="ml-1.5 inline-flex items-center px-1.5 py-0.2 rounded text-[9px] font-bold bg-slate-100 text-slate-650 border border-slate-200 normal-case tracking-normal">
+                                  Defunct
+                                </span>
+                              )}
+                              <span className="font-normal text-xs text-slate-500 dark:text-slate-400 ml-1">— {sec.companyName}</span>
+                            </button>
+                            <span className="font-semibold text-slate-900 dark:text-white text-xs bg-slate-100 dark:bg-slate-800 px-2 py-0.5 rounded border border-slate-200/50 dark:border-slate-700/50">
+                              {weightPct.toFixed(1)}%
+                            </span>
+                          </div>
+                        );
+                      })}
                   </div>
                 </div>
               )}
@@ -782,38 +759,30 @@ export const Markets = () => {
           {/* Market Indices Panel */}
           <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
             {(() => {
-              const indexCardsList = [
-                { id: 'GASCI', label: 'GASCI Index', currency: 'GYD', flag: '🇬🇾', color: 'emerald' },
-                { id: 'BSE', label: 'BSE Index', currency: 'BBD', flag: '🇧🇧', color: 'yellow' },
-                { id: 'JSE', label: 'JSE Index', currency: 'JMD', flag: '🇯🇲', color: 'green' },
-                { id: 'TTSE', label: 'TTSE Index', currency: 'TTD', flag: '🇹🇹', color: 'cyan' },
-                { id: 'ECSE', label: 'ECSE Index', currency: 'XCD', flag: '🇰🇳', color: 'blue' }
-              ] as const;
-              
-              return indexCardsList.map(cardInfo => {
-                const indexData = indices[cardInfo.id];
-                const colorClass = cardInfo.color === 'emerald' ? 'text-emerald-500 dark:text-emerald-400' :
-                                   cardInfo.color === 'yellow' ? 'text-yellow-500 dark:text-yellow-400' :
-                                   cardInfo.color === 'green' ? 'text-green-500 dark:text-green-400' :
-                                   cardInfo.color === 'cyan' ? 'text-cyan-500 dark:text-cyan-400' :
+              return indices.map(idx => {
+                const indexData = indicesSummary[idx.id];
+                const colorClass = idx.color === 'emerald' ? 'text-emerald-500 dark:text-emerald-400' :
+                                   idx.color === 'yellow' ? 'text-yellow-500 dark:text-yellow-400' :
+                                   idx.color === 'green' ? 'text-green-500 dark:text-green-400' :
+                                   idx.color === 'cyan' ? 'text-cyan-500 dark:text-cyan-400' :
                                    'text-blue-500 dark:text-blue-400';
                 return (
                   <Card 
-                    key={cardInfo.id}
+                    key={idx.id}
                     onClick={() => {
-                      setSelectedIndexId(cardInfo.id);
+                      setSelectedIndexId(idx.id as any);
                       setIsCompositionExpanded(false);
                     }}
                     className="bg-white dark:bg-slate-900 border-slate-100 dark:border-slate-800 text-slate-900 dark:text-white relative overflow-hidden group transition-colors duration-300 cursor-pointer hover:border-blue-400 dark:hover:border-blue-500 select-none"
                   >
-                    <div className="absolute top-0 right-0 p-6 text-slate-100/10 dark:text-slate-800/10 font-extrabold text-5xl pointer-events-none select-none">{cardInfo.flag}</div>
+                    <div className="absolute top-0 right-0 p-6 text-slate-100/10 dark:text-slate-800/10 font-extrabold text-5xl pointer-events-none select-none">{idx.flag}</div>
                     <CardContent className="p-4 flex flex-col justify-between h-24 relative z-10">
                       <div className="flex items-center justify-between text-[10px] text-slate-500 dark:text-slate-400 font-bold uppercase tracking-wider">
                         <span className="flex items-center">
                           <TrendingUp className={`w-3.5 h-3.5 mr-1 ${colorClass}`} /> 
-                          {cardInfo.label}
+                          {idx.name}
                         </span>
-                        <span>{cardInfo.currency}</span>
+                        <span>{idx.id === 'GASCI' ? 'GYD' : idx.id === 'BSE' ? 'BBD' : idx.id === 'JSE' ? 'JMD' : idx.id === 'TTSE' ? 'TTD' : 'XCD'}</span>
                       </div>
                       <div className="mt-2 flex items-baseline justify-between">
                         <span className="text-2xl font-black tracking-tight">

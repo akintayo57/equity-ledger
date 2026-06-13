@@ -1,6 +1,7 @@
 import { createContext, useContext, useState, useEffect, useMemo, ReactNode } from 'react';
-import { Security, Account, Transaction, PriceUpdate, FXRate, HoldingCalculation, PortfolioSummary, Exchange, EquityNote } from './types';
-import { calculateHoldings } from './utils';
+import { Security, Account, Transaction, PriceUpdate, FXRate, HoldingCalculation, PortfolioSummary, Exchange, EquityNote, IndexDefinition, IndexHistoryPoint } from './types';
+import { calculateHoldings, calculateIndexHistory } from './utils';
+import { initialIndices } from './mockData';
 import { User } from 'firebase/auth';
 import { 
   db,
@@ -22,6 +23,8 @@ interface AppState {
   exchanges: Exchange[];
   equityNotes: EquityNote[];
   watchlist: string[];
+  indices: IndexDefinition[];
+  indexHistory: IndexHistoryPoint[];
   loading: boolean;
 }
 
@@ -39,6 +42,7 @@ interface StoreContextType extends AppState {
   addAccount: (acc: Omit<Account, 'id'>) => Promise<string>;
   addEquityNote: (note: Omit<EquityNote, 'id'>) => Promise<void>;
   deleteEquityNote: (id: string) => Promise<void>;
+  backfillIndices: () => Promise<void>;
   theme: 'light' | 'dark';
   setTheme: (t: 'light' | 'dark') => void;
 }
@@ -51,6 +55,8 @@ export const StoreProvider = ({ children, user }: { children: ReactNode; user: U
   const [fxRates, setFXRates] = useState<FXRate[]>([]);
   const [exchanges, setExchanges] = useState<Exchange[]>([]);
   const [equityNotes, setEquityNotes] = useState<EquityNote[]>([]);
+  const [indices, setIndices] = useState<IndexDefinition[]>([]);
+  const [indexHistory, setIndexHistory] = useState<IndexHistoryPoint[]>([]);
   
   const [accounts, setAccounts] = useState<Account[]>([]);
   const [transactions, setTransactions] = useState<Transaction[]>([]);
@@ -154,12 +160,35 @@ export const StoreProvider = ({ children, user }: { children: ReactNode; user: U
       }
     });
 
+    // 6. Sync Indices
+    const unsubIndices = onSnapshot(collection(db, 'indices'), (snap) => {
+      let idxs = snap.docs.map(d => ({ ...d.data(), id: d.id } as IndexDefinition));
+      if (idxs.length === 0) {
+        idxs = initialIndices;
+      }
+      setIndices(idxs);
+      if (localStorage.getItem('harbour_auth_mode') !== 'offline') {
+        localStorage.setItem('harbour_data_indices', JSON.stringify(idxs));
+      }
+    });
+
+    // 7. Sync Index History
+    const unsubIndexHistory = onSnapshot(collection(db, 'indexHistory'), (snap) => {
+      const hist = snap.docs.map(d => ({ ...d.data(), id: d.id } as IndexHistoryPoint));
+      setIndexHistory(hist);
+      if (localStorage.getItem('harbour_auth_mode') !== 'offline') {
+        localStorage.setItem('harbour_data_indexHistory', JSON.stringify(hist));
+      }
+    });
+
     return () => {
       unsubExchanges();
       unsubSecurities();
       unsubPrices();
       unsubFX();
       unsubNotes();
+      unsubIndices();
+      unsubIndexHistory();
     };
   }, []);
 
@@ -278,6 +307,27 @@ export const StoreProvider = ({ children, user }: { children: ReactNode; user: U
     await deleteDoc(doc(db, 'equityNotes', id));
   };
 
+  const backfillIndices = async () => {
+    for (const idxDef of indices) {
+      const historyPoints = calculateIndexHistory(idxDef, prices);
+      for (const pt of historyPoints) {
+        await setDoc(doc(db, 'indexHistory', pt.id), pt);
+      }
+    }
+  };
+
+  // Automatic backfill check for local mock database in workstation mode
+  useEffect(() => {
+    if (indices.length > 0 && prices.length > 0 && indexHistory.length === 0) {
+      const isOffline = localStorage.getItem('harbour_auth_mode') === 'offline';
+      const isWorkstation = import.meta.env.VITE_APP_ENV === 'local' || import.meta.env.MODE === 'test';
+      if (isOffline && isWorkstation) {
+        console.log('Index history empty in mock workstation mode, executing automatic backfill...');
+        backfillIndices().catch(err => console.error('Auto backfill failed:', err));
+      }
+    }
+  }, [indices, prices, indexHistory]);
+
   return (
     <StoreContext.Provider
       value={{
@@ -303,6 +353,9 @@ export const StoreProvider = ({ children, user }: { children: ReactNode; user: U
         addAccount,
         addEquityNote,
         deleteEquityNote,
+        indices,
+        indexHistory,
+        backfillIndices,
         theme,
         setTheme,
       }}

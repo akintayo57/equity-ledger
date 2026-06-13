@@ -119,3 +119,20 @@ export interface PortfolioSummary {
   totalDividendsUSD: number;
 }
 
+export interface IndexDefinition {
+  id: string; // e.g. 'GASCI', 'BSE'
+  name: string;
+  exchangeId: string;
+  scale: number;
+  flag: string;
+  color: string;
+  constituentIds: string[];
+}
+
+export interface IndexHistoryPoint {
+  id: string; // e.g. 'GASCI_2026-06-07'
+  indexId: string;
+  date: string;
+  value: number;
+}
+

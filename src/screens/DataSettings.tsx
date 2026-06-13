@@ -160,7 +160,7 @@ const FundamentalsSection = () => {
               <textarea 
                 value={csvText}
                 onChange={e => setCsvText(e.target.value)}
-                placeholder="GBTI, 10.5, 45.2, 2.1, 1.4, 15.2, 2023-12-31"
+                placeholder="BTI, 10.5, 45.2, 2.1, 1.4, 15.2, 2023-12-31"
                 className="w-full text-xs font-mono border border-slate-300 dark:border-slate-800 rounded p-2 h-24 focus:ring-blue-500 focus:border-blue-500 bg-white dark:bg-slate-900 text-slate-900 dark:text-white"
               />
               <button 
@@ -306,13 +306,26 @@ const EditFundamentalsForm = ({ security, currency, onClose }: { security: Secur
 
 const ProfileSection = () => {
   const user = auth.currentUser;
-  const { theme, setTheme } = useStore();
+  const { theme, setTheme, backfillIndices } = useStore();
+  const [backfilling, setBackfilling] = useState(false);
 
   const handleLogout = async () => {
     try {
       await signOut(auth);
     } catch (err) {
       alert(`Failed to log out: ${(err as Error).message}`);
+    }
+  };
+
+  const handleBackfill = async () => {
+    setBackfilling(true);
+    try {
+      await backfillIndices();
+      alert('Index history successfully rebuilt!');
+    } catch (err) {
+      alert(`Failed to backfill index history: ${(err as Error).message}`);
+    } finally {
+      setBackfilling(false);
     }
   };
   
@@ -388,6 +401,29 @@ const ProfileSection = () => {
               <span>Dark Mode</span>
             </button>
           </div>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader title="Index Database Management" />
+        <CardContent className="p-4 bg-white dark:bg-slate-900 space-y-4">
+          <p className="text-xs text-slate-500 dark:text-slate-400">
+            Recompute and backfill the index history points in the database based on the constituent definitions and raw price updates.
+          </p>
+          <button
+            onClick={handleBackfill}
+            disabled={backfilling}
+            className="w-full flex justify-center items-center gap-2 py-2.5 px-4 bg-blue-600 dark:bg-blue-700 hover:bg-blue-700 dark:hover:bg-blue-800 text-white rounded-xl font-bold text-xs transition-colors cursor-pointer disabled:opacity-50"
+          >
+            {backfilling ? (
+              <>
+                <div className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                <span>Rebuilding Index History...</span>
+              </>
+            ) : (
+              <span>Backfill Index History</span>
+            )}
+          </button>
         </CardContent>
       </Card>
     </div>

@@ -92,6 +92,11 @@ export const HoldingsList = () => {
                       <div>
                         <div className="flex items-center space-x-2">
                           <span className="font-bold text-slate-900">{h.security.ticker}</span>
+                          {h.security.status === 'INACTIVE' && (
+                            <span className="inline-flex items-center px-1.5 py-0.2 rounded text-[9px] font-bold bg-slate-100 text-slate-650 border border-slate-200">
+                              Defunct
+                            </span>
+                          )}
                           {isStale && <AlertTriangle className="w-3.5 h-3.5 text-amber-500" title="Price is stale" />}
                           {h.hasUncertainty && (
                             <span className="flex items-center text-amber-600 text-[9px] bg-amber-500/10 border border-amber-500/20 px-1.5 py-0.5 rounded-md font-bold uppercase tracking-wider" title="Cost basis estimated.">
@@ -159,6 +164,11 @@ export const HoldingsList = () => {
                       <div>
                         <div className="flex items-center space-x-2">
                           <span className="font-bold text-slate-900">{s.ticker}</span>
+                          {s.status === 'INACTIVE' && (
+                            <span className="inline-flex items-center px-1.5 py-0.2 rounded text-[9px] font-bold bg-slate-100 text-slate-650 border border-slate-200">
+                              Defunct
+                            </span>
+                          )}
                           <Badge variant="blue">Market</Badge>
                         </div>
                         <div className="text-xs text-slate-500 truncate max-w-[180px]">
@@ -356,7 +366,14 @@ export const WatchlistTab = () => {
                   <CardContent className="p-4">
                     <div className="flex justify-between items-start mb-2">
                       <div>
-                        <span className="font-bold text-slate-900">{s.ticker}</span>
+                        <div className="flex items-center space-x-2">
+                          <span className="font-bold text-slate-900">{s.ticker}</span>
+                          {s.status === 'INACTIVE' && (
+                            <span className="inline-flex items-center px-1.5 py-0.2 rounded text-[9px] font-bold bg-slate-100 text-slate-650 border border-slate-200">
+                              Defunct
+                            </span>
+                          )}
+                        </div>
                         <div className="text-xs text-slate-500 truncate max-w-[200px] mt-0.5">
                           {s.companyName}
                         </div>
@@ -409,6 +426,11 @@ export const WatchlistTab = () => {
                       <div>
                         <div className="flex items-center space-x-2">
                           <span className="font-bold text-slate-900">{s.ticker}</span>
+                          {s.status === 'INACTIVE' && (
+                            <span className="inline-flex items-center px-1.5 py-0.2 rounded text-[9px] font-bold bg-slate-100 text-slate-650 border border-slate-200">
+                              Defunct
+                            </span>
+                          )}
                           <Badge variant="blue">Market</Badge>
                         </div>
                         <div className="text-xs text-slate-500 truncate max-w-[200px] mt-0.5">

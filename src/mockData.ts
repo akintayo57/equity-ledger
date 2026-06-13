@@ -1,7 +1,7 @@
-import { Security, PriceUpdate, FXRate, Currency } from './types';
+import { Security, PriceUpdate, FXRate, Currency, IndexDefinition } from './types';
 
 export const initialSecurities: any[] = [
-  { id: 'sec-1', companyName: 'Guyana Bank for Trade and Industry Limited', ticker: 'GBTI', exchange: 'GASCI', country: 'Guyana', currency: 'GYD', sector: 'Financials', status: 'ACTIVE', fundamentals: { peRatio: 12.5, eps: 45.2, dividendYield: 2.1, pbRatio: 1.4, roe: 15.2, lastUpdated: '2023-12-31' } },
+  { id: 'sec-1', companyName: 'Guyana Bank for Trade and Industry Limited', ticker: 'BTI', exchange: 'GASCI', country: 'Guyana', currency: 'GYD', sector: 'Financials', status: 'ACTIVE', fundamentals: { peRatio: 12.5, eps: 45.2, dividendYield: 2.1, pbRatio: 1.4, roe: 15.2, lastUpdated: '2023-12-31' } },
   { id: 'sec-2', companyName: 'Demerara Bank Limited', ticker: 'DBL', exchange: 'GASCI', country: 'Guyana', currency: 'GYD', sector: 'Financials', status: 'ACTIVE', fundamentals: { peRatio: 14.1, eps: 15.0, dividendYield: 3.5, pbRatio: 2.1, roe: 18.4, lastUpdated: '2023-12-31' } },
   { id: 'sec-3', companyName: 'Banks DIH Limited', ticker: 'DIH', exchange: 'GASCI', country: 'Guyana', currency: 'GYD', sector: 'Consumer Staples', status: 'ACTIVE', fundamentals: { peRatio: 8.5, eps: 14.1, dividendYield: 4.2, pbRatio: 1.1, roe: 11.2, lastUpdated: '2023-12-31' } },
   { id: 'sec-4', companyName: 'Demerara Distillers Limited', ticker: 'DDL', exchange: 'GASCI', country: 'Guyana', currency: 'GYD', sector: 'Consumer Staples', status: 'ACTIVE', fundamentals: { peRatio: 10.2, eps: 17.5, dividendYield: 2.8, pbRatio: 1.5, roe: 13.5, lastUpdated: '2023-12-31' } },
@@ -17,12 +17,12 @@ export const initialSecurities: any[] = [
   { id: 'sec-cci', companyName: 'Caribbean Container Incorporated', ticker: 'CCI', exchange: 'GASCI', country: 'Guyana', currency: 'GYD', sector: 'Industrials', status: 'ACTIVE' },
   { id: 'sec-cjl', companyName: 'City Jewelers and Pawnbrokers Limited', ticker: 'CJL', exchange: 'GASCI', country: 'Guyana', currency: 'GYD', sector: 'Consumer Cyclical', status: 'ACTIVE' },
   { id: 'sec-dtc', companyName: 'Demerara Tobacco Company Limited', ticker: 'DTC', exchange: 'GASCI', country: 'Guyana', currency: 'GYD', sector: 'Consumer Staples', status: 'ACTIVE' },
-  { id: 'sec-gncb', companyName: 'Guyana National Co-operative Bank', ticker: 'GNCB', exchange: 'GASCI', country: 'Guyana', currency: 'GYD', sector: 'Financials', status: 'ACTIVE' },
+  { id: 'sec-gncb', companyName: 'Guyana National Co-operative Bank', ticker: 'GNCB', exchange: 'GASCI', country: 'Guyana', currency: 'GYD', sector: 'Financials', status: 'INACTIVE' },
   { id: 'sec-gsi', companyName: 'Guyana Stockfeeds Incorporated', ticker: 'GSI', exchange: 'GASCI', country: 'Guyana', currency: 'GYD', sector: 'Consumer Staples', status: 'ACTIVE' },
-  { id: 'sec-gti', companyName: 'Globe Trust & Investment Company Limited', ticker: 'GTI', exchange: 'GASCI', country: 'Guyana', currency: 'GYD', sector: 'Financials', status: 'ACTIVE' },
+  { id: 'sec-gti', companyName: 'Globe Trust & Investment Company Limited', ticker: 'GTI', exchange: 'GASCI', country: 'Guyana', currency: 'GYD', sector: 'Financials', status: 'INACTIVE' },
   { id: 'sec-hcl', companyName: 'Humphrey & Company Limited', ticker: 'HCL', exchange: 'GASCI', country: 'Guyana', currency: 'GYD', sector: 'Financials', status: 'ACTIVE' },
   { id: 'sec-jps', companyName: 'J.P. Santos & Company Limited', ticker: 'JPS', exchange: 'GASCI', country: 'Guyana', currency: 'GYD', sector: 'Services', status: 'ACTIVE' },
-  { id: 'sec-nbi', companyName: 'National Bank of Industry & Commerce Ltd', ticker: 'NBI', exchange: 'GASCI', country: 'Guyana', currency: 'GYD', sector: 'Financials', status: 'ACTIVE' },
+  { id: 'sec-nbi', companyName: 'National Bank of Industry & Commerce Ltd', ticker: 'NBI', exchange: 'GASCI', country: 'Guyana', currency: 'GYD', sector: 'Financials', status: 'INACTIVE' },
   { id: 'sec-phi', companyName: 'Property Holdings Incorporated', ticker: 'PHI', exchange: 'GASCI', country: 'Guyana', currency: 'GYD', sector: 'Real Estate', status: 'ACTIVE' },
   { id: 'sec-rbl', companyName: 'Republic Bank (Guyana) Limited', ticker: 'RBL', exchange: 'GASCI', country: 'Guyana', currency: 'GYD', sector: 'Financials', status: 'ACTIVE' },
   { id: 'sec-rdl', companyName: 'Rupununi Development Company Limited', ticker: 'RDL', exchange: 'GASCI', country: 'Guyana', currency: 'GYD', sector: 'Consumer Staples', status: 'ACTIVE' },
@@ -103,4 +103,56 @@ export const initialFXRates: FXRate[] = [
   ...generateFXHistory('USD', 'JMD', 155.2, 'BOJ'),
   ...generateFXHistory('USD', 'BBD', 2.02, 'Fixed'),
   ...generateFXHistory('USD', 'XCD', 2.7, 'Fixed')
+];
+
+export const initialIndices: IndexDefinition[] = [
+  {
+    id: 'GASCI',
+    name: 'GASCI Index',
+    exchangeId: 'GASCI',
+    scale: 10,
+    flag: '🇬🇾',
+    color: 'emerald',
+    constituentIds: [
+      'sec-1', 'sec-2', 'sec-3', 'sec-4', 'sec-bdh', 'sec-cbi', 
+      'sec-cci', 'sec-cjl', 'sec-dtc', 'sec-gsi', 'sec-hcl', 
+      'sec-jps', 'sec-phi', 'sec-rbl', 'sec-rdl', 'sec-spl', 'sec-tcl'
+    ]
+  },
+  {
+    id: 'BSE',
+    name: 'BSE Index',
+    exchangeId: 'BSE',
+    scale: 1000,
+    flag: '🇧🇧',
+    color: 'yellow',
+    constituentIds: ['sec-9']
+  },
+  {
+    id: 'JSE',
+    name: 'JSE Index',
+    exchangeId: 'JSE',
+    scale: 100,
+    flag: '🇯🇲',
+    color: 'green',
+    constituentIds: ['sec-6', 'sec-7']
+  },
+  {
+    id: 'TTSE',
+    name: 'TTSE Index',
+    exchangeId: 'TTSE',
+    scale: 100,
+    flag: '🇹🇹',
+    color: 'cyan',
+    constituentIds: ['sec-5', 'sec-8']
+  },
+  {
+    id: 'ECSE',
+    name: 'ECSE Index',
+    exchangeId: 'ECSE',
+    scale: 100,
+    flag: '🇰🇳',
+    color: 'blue',
+    constituentIds: ['sec-bon', 'sec-ecfh', 'sec-wioc']
+  }
 ];

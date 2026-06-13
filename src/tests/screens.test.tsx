@@ -178,6 +178,35 @@ describe('Markets screen tests', () => {
     expect(screen.getByText(/Guyana Bank for Trade and Industry/i)).toBeInTheDocument();
     expect(screen.queryByText('Index Profile & Methodology')).not.toBeInTheDocument();
   });
+
+  it('should exclude defunct equities from index calculations and constituents list', async () => {
+    renderWithContext(<Markets />);
+
+    await act(async () => {
+      await new Promise(resolve => setTimeout(resolve, 50));
+    });
+
+    const gasciIndexCard = screen.getByText('GASCI Index');
+    await act(async () => {
+      fireEvent.click(gasciIndexCard);
+    });
+
+    const toggleBtn = screen.getByText(/Index Constituents & Weights/i);
+    await act(async () => {
+      fireEvent.click(toggleBtn);
+    });
+
+    // Label should show "17 Equities" because GNCB, GTI, NBI are defunct and excluded (20 - 3 = 17)
+    expect(screen.getByText('17 Equities')).toBeInTheDocument();
+
+    // GBTI/BTI is active, so it should be visible
+    expect(screen.getByText(/Guyana Bank for Trade and Industry/i)).toBeInTheDocument();
+
+    // GNCB, GTI, NBI are inactive, so they should NOT be visible
+    expect(screen.queryByText(/Guyana National Co-operative Bank/i)).not.toBeInTheDocument();
+    expect(screen.queryByText(/Globe Trust & Investment/i)).not.toBeInTheDocument();
+    expect(screen.queryByText(/National Bank of Industry/i)).not.toBeInTheDocument();
+  });
 });
 
 describe('Portfolio tab switcher tests', () => {

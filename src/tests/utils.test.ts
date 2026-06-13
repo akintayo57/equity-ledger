@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { formatMoney, formatPercentage, getPriceStaleStatus, getFXStaleStatus, calculateHoldings } from '../utils';
+import { formatMoney, formatPercentage, getPriceStaleStatus, getFXStaleStatus, calculateHoldings, calculateIndexHistory } from '../utils';
 import { Security, Transaction, PriceUpdate, FXRate, Exchange } from '../types';
 import { subDays } from 'date-fns';
 
@@ -149,5 +149,52 @@ describe('calculateHoldings tests', () => {
     
     expect(gdi?.portfolioWeight).toBe(60);
     expect(bhl?.portfolioWeight).toBe(40);
+  });
+});
+
+describe('calculateIndexHistory tests', () => {
+  it('should calculate historical index levels and backward-fill missing price updates correctly', () => {
+    const mockIndexDef = {
+      id: 'TEST_IDX',
+      name: 'Test Index',
+      exchangeId: 'GASCI',
+      scale: 10,
+      flag: '🇸🇷',
+      color: 'blue',
+      constituentIds: ['sec-A', 'sec-B']
+    };
+
+    const mockPrices: PriceUpdate[] = [
+      // sec-A trades on Day 1 and Day 3
+      { id: 'p1', securityId: 'sec-A', price: 10, date: '2026-06-01', currency: 'GYD', source: 'Test' },
+      { id: 'p2', securityId: 'sec-A', price: 12, date: '2026-06-03', currency: 'GYD', source: 'Test' },
+      // sec-B trades on Day 2 and Day 3
+      { id: 'p3', securityId: 'sec-B', price: 20, date: '2026-06-02', currency: 'GYD', source: 'Test' },
+      { id: 'p4', securityId: 'sec-B', price: 18, date: '2026-06-03', currency: 'GYD', source: 'Test' }
+    ];
+
+    const result = calculateIndexHistory(mockIndexDef, mockPrices);
+
+    // Should have 3 historical points (Day 1, Day 2, Day 3)
+    expect(result.length).toBe(3);
+
+    // Day 1 (2026-06-01): Only sec-A has price (10). sec-B is not yet listed/traded.
+    // Index level = (10 / 1) * 10 = 100.
+    const pt1 = result.find(r => r.date === '2026-06-01');
+    expect(pt1).toBeDefined();
+    expect(pt1?.value).toBe(100);
+
+    // Day 2 (2026-06-02): sec-A has no trade, backward-fills to Day 1 price (10).
+    // sec-B trades at 20.
+    // Index level = ((10 + 20) / 2) * 10 = 15 * 10 = 150.
+    const pt2 = result.find(r => r.date === '2026-06-02');
+    expect(pt2).toBeDefined();
+    expect(pt2?.value).toBe(150);
+
+    // Day 3 (2026-06-03): sec-A trades at 12, sec-B trades at 18.
+    // Index level = ((12 + 18) / 2) * 10 = 15 * 10 = 150.
+    const pt3 = result.find(r => r.date === '2026-06-03');
+    expect(pt3).toBeDefined();
+    expect(pt3?.value).toBe(150);
   });
 });

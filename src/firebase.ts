@@ -19,7 +19,7 @@ import {
   deleteDoc as realDeleteDoc,
   updateDoc as realUpdateDoc
 } from 'firebase/firestore';
-import { initialSecurities, initialPrices, initialFXRates } from './mockData';
+import { initialSecurities, initialPrices, initialFXRates, initialIndices } from './mockData';
 
 const firebaseConfig = {
   apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
@@ -247,6 +247,10 @@ const getMockCollection = (collectionPath: string): any[] => {
   } else if (collectionPath === 'fxRates') {
     initialData = initialFXRates;
   } else if (collectionPath === 'equityNotes') {
+    initialData = [];
+  } else if (collectionPath === 'indices') {
+    initialData = initialIndices;
+  } else if (collectionPath === 'indexHistory') {
     initialData = [];
   } else if (collectionPath.endsWith('/accounts')) {
     initialData = [

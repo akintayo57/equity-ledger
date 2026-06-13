@@ -1,5 +1,5 @@
 import { differenceInDays } from 'date-fns';
-import { Security, Transaction, PriceUpdate, FXRate, HoldingCalculation, Exchange } from './types';
+import { Security, Transaction, PriceUpdate, FXRate, HoldingCalculation, Exchange, IndexDefinition, IndexHistoryPoint } from './types';
 
 export const formatMoney = (value: number, currency: string) => {
   return new Intl.NumberFormat('en-US', {
@@ -231,4 +231,49 @@ export const calculateHoldings = (
   }
 
   return holdings.sort((a, b) => b.marketValueUSD - a.marketValueUSD);
+};
+
+export const calculateIndexHistory = (
+  indexDef: IndexDefinition,
+  prices: PriceUpdate[]
+): IndexHistoryPoint[] => {
+  const constituents = new Set(indexDef.constituentIds);
+  const exchangePrices = prices.filter(p => constituents.has(p.securityId));
+  if (exchangePrices.length === 0) return [];
+
+  // Group prices by date
+  const uniqueDates = Array.from(new Set(exchangePrices.map(p => p.date))).sort();
+
+  // Map of securityId -> sorted prices
+  const priceMap = new Map<string, PriceUpdate[]>();
+  indexDef.constituentIds.forEach(secId => {
+    const secPrices = exchangePrices
+      .filter(p => p.securityId === secId)
+      .sort((a, b) => a.date.localeCompare(b.date));
+    priceMap.set(secId, secPrices);
+  });
+
+  return uniqueDates.map(date => {
+    let sum = 0;
+    let count = 0;
+
+    indexDef.constituentIds.forEach(secId => {
+      const secPrices = priceMap.get(secId) || [];
+      // Find the price on or before this date
+      const priceObj = secPrices.filter(p => p.date <= date).slice(-1)[0];
+      if (priceObj) {
+        sum += priceObj.price;
+        count++;
+      }
+    });
+
+    const val = count > 0 ? (sum / count) * indexDef.scale : 0;
+
+    return {
+      id: `${indexDef.id}_${date}`,
+      indexId: indexDef.id,
+      date,
+      value: Number(val.toFixed(2))
+    };
+  }).filter(pt => pt.value > 0);
 };

@@ -175,7 +175,14 @@ export const HoldingDetail = () => {
             <ArrowLeft className="w-4 h-4 text-slate-700 dark:text-slate-300" />
           </button>
           <div>
-            <h2 className="text-xl font-bold text-slate-900 dark:text-white leading-tight">{security.ticker}</h2>
+            <h2 className="text-xl font-bold text-slate-900 dark:text-white leading-tight flex items-center">
+              {security.ticker}
+              {security.status === 'INACTIVE' && (
+                <span className="ml-2 inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-bold bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-400 border border-slate-200 dark:border-slate-700 normal-case tracking-normal">
+                  Defunct
+                </span>
+              )}
+            </h2>
             <div className="text-xs text-slate-500 dark:text-slate-400">{security.companyName}</div>
           </div>
         </div>
@@ -207,6 +214,17 @@ export const HoldingDetail = () => {
 
       {activeTab === 'OVERVIEW' && (
         <>
+          {security.status === 'INACTIVE' && (
+            <div className="bg-slate-50 dark:bg-slate-950/20 border border-slate-200 dark:border-slate-800 rounded-2xl p-4 flex items-start space-x-3 text-slate-600 dark:text-slate-400">
+              <Info className="w-5 h-5 text-slate-400 shrink-0 mt-0.5" />
+              <div className="text-xs space-y-1">
+                <div className="font-bold text-slate-900 dark:text-white">Delisted / Defunct Equity</div>
+                <p className="text-slate-600 dark:text-slate-405 leading-normal">
+                  This security is no longer actively listed or traded on the exchange. Historical transaction data and price charts are preserved for portfolio ledger consistency.
+                </p>
+              </div>
+            </div>
+          )}
           {/* Card 1: Specific Holding Details (Personal Portfolio Info) */}
           {holding && (
             <div className="space-y-4">
