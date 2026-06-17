@@ -79,7 +79,15 @@ export const calculateHoldings = (
   });
 
   // Group transactions by security and track cost basis in local and USD currencies
-  const holdingsMap = new Map<string, { shares: number; costBasis: number; costBasisUSD: number; totalSharesBought: number; hasUncertainty: boolean }>();
+  const holdingsMap = new Map<string, { 
+    shares: number; 
+    costBasis: number; 
+    costBasisUSD: number; 
+    totalSharesBought: number; 
+    hasUncertainty: boolean;
+    realizedGainLocal: number;
+    realizedGainUSD: number;
+  }>();
 
   // Sort transactions chronologically to calculate average cost step-by-step
   const sortedTxs = [...adjustedTxs].sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
@@ -87,7 +95,15 @@ export const calculateHoldings = (
   sortedTxs.forEach((tx) => {
     if (tx.type === 'DIVIDEND' || tx.type === 'FEE' || tx.type === 'SPLIT') return;
 
-    const current = holdingsMap.get(tx.securityId) || { shares: 0, costBasis: 0, costBasisUSD: 0, totalSharesBought: 0, hasUncertainty: false };
+    const current = holdingsMap.get(tx.securityId) || { 
+      shares: 0, 
+      costBasis: 0, 
+      costBasisUSD: 0, 
+      totalSharesBought: 0, 
+      hasUncertainty: false,
+      realizedGainLocal: 0,
+      realizedGainUSD: 0
+    };
     
     // Find historically accurate FX rate on or before the transaction date
     let txFxRate = 1;
@@ -117,9 +133,19 @@ export const calculateHoldings = (
     } else if (tx.type === 'SELL') {
       const avgCost = current.shares > 0 ? (current.costBasis / current.shares) : 0;
       const avgCostUSD = current.shares > 0 ? (current.costBasisUSD / current.shares) : 0;
+      
+      const proceeds = (tx.shares * tx.pricePerShare) - (tx.fees || 0);
+      const proceedsUSD = proceeds * txFxRateToUSD;
+      
+      const soldCost = tx.shares * avgCost;
+      const soldCostUSD = tx.shares * avgCostUSD;
+      
+      current.realizedGainLocal += (proceeds - soldCost);
+      current.realizedGainUSD += (proceedsUSD - soldCostUSD);
+      
       current.shares -= tx.shares;
-      current.costBasis -= tx.shares * avgCost;
-      current.costBasisUSD -= tx.shares * avgCostUSD;
+      current.costBasis -= soldCost;
+      current.costBasisUSD -= soldCostUSD;
       if (current.shares <= 0) {
         current.shares = 0;
         current.costBasis = 0;
@@ -146,7 +172,7 @@ export const calculateHoldings = (
 
   securities.forEach((sec) => {
     const data = holdingsMap.get(sec.id);
-    if (!data || data.shares <= 0) return; // Only active holdings
+    if (!data) return; // Keep holdings with shares === 0 to preserve history
 
     const currency = getSecurityCurrency(sec);
     const latestPriceObj = getLatestPrice(sec.id);
@@ -220,6 +246,8 @@ export const calculateHoldings = (
       currency: currency as any,
       country,
       exchangeName,
+      realizedGainLocal: data.realizedGainLocal,
+      realizedGainUSD: data.realizedGainUSD,
     });
   });
 

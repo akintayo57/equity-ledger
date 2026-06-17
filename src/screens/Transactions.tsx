@@ -185,7 +185,7 @@ export const Transactions = () => {
 };
 
 const TransactionForm = ({ onClose, initialTx, preSelectedSecurityId }: { onClose: () => void, initialTx?: Transaction, preSelectedSecurityId?: string }) => {
-  const { securities, accounts, addTransaction, updateTransaction, addAccount, exchanges } = useStore();
+  const { securities, accounts, addTransaction, updateTransaction, addAccount, exchanges, prices } = useStore();
   
   const [type, setType] = useState<TransactionType>(initialTx?.type || 'BUY');
   const [secId, setSecId] = useState(initialTx?.securityId || preSelectedSecurityId || securities[0]?.id || '');
@@ -195,6 +195,20 @@ const TransactionForm = ({ onClose, initialTx, preSelectedSecurityId }: { onClos
   const [price, setPrice] = useState(initialTx?.pricePerShare || 0);
   const [fees, setFees] = useState(initialTx?.fees || 0);
   const [isUncertain, setIsUncertain] = useState(initialTx?.isUncertain || false);
+
+  // Default to the latest price when secId changes (unless editing initialTx and it is the first render for that security)
+  useEffect(() => {
+    if (initialTx && secId === initialTx.securityId) {
+      return;
+    }
+    const secPrices = prices.filter(p => p.securityId === secId);
+    if (secPrices.length > 0) {
+      const sorted = [...secPrices].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+      setPrice(sorted[0].price);
+    } else {
+      setPrice(0);
+    }
+  }, [secId, prices, initialTx]);
 
   // Modals visibility
   const [showAddAcc, setShowAddAcc] = useState(false);

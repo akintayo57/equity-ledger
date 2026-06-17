@@ -243,14 +243,31 @@ export const StoreProvider = ({ children, user }: { children: ReactNode; user: U
         acc.totalMarketValueUSD += curr.marketValueUSD;
         acc.totalCostBasisUSD += curr.totalCostBasisUSD;
         acc.unrealizedGainUSD += curr.unrealizedGainUSD;
+        acc.realizedGainUSD += curr.realizedGainUSD;
         acc.totalDividendsUSD += curr.totalDividendsUSD;
         return acc;
       },
-      { totalMarketValueUSD: 0, totalCostBasisUSD: 0, unrealizedGainUSD: 0, capitalGrowthPct: 0, totalDividendsUSD: 0 }
+      { 
+        totalMarketValueUSD: 0, 
+        totalCostBasisUSD: 0, 
+        unrealizedGainUSD: 0, 
+        realizedGainUSD: 0,
+        capitalGrowthUSD: 0,
+        capitalGrowthPct: 0, 
+        totalDividendsUSD: 0,
+        totalReturnUSD: 0,
+        totalReturnPct: 0
+      }
     );
 
+    summary.capitalGrowthUSD = summary.unrealizedGainUSD + summary.realizedGainUSD;
     if (summary.totalCostBasisUSD > 0) {
-      summary.capitalGrowthPct = (summary.unrealizedGainUSD / summary.totalCostBasisUSD) * 100;
+      summary.capitalGrowthPct = (summary.capitalGrowthUSD / summary.totalCostBasisUSD) * 100;
+    }
+    
+    summary.totalReturnUSD = summary.capitalGrowthUSD + summary.totalDividendsUSD;
+    if (summary.totalCostBasisUSD > 0) {
+      summary.totalReturnPct = (summary.totalReturnUSD / summary.totalCostBasisUSD) * 100;
     }
 
     return summary;
@@ -308,7 +325,13 @@ export const StoreProvider = ({ children, user }: { children: ReactNode; user: U
   };
 
   const backfillIndices = async () => {
-    for (const idxDef of indices) {
+    // Seed standard index definitions to database
+    for (const idxDef of initialIndices) {
+      await setDoc(doc(db, 'indices', idxDef.id), idxDef);
+    }
+    // Calculate and write historical points
+    const currentIndices = indices.length > 0 ? indices : initialIndices;
+    for (const idxDef of currentIndices) {
       const historyPoints = calculateIndexHistory(idxDef, prices);
       for (const pt of historyPoints) {
         await setDoc(doc(db, 'indexHistory', pt.id), pt);
@@ -317,16 +340,22 @@ export const StoreProvider = ({ children, user }: { children: ReactNode; user: U
   };
 
   // Automatic backfill check for local mock database in workstation mode
+  const [backfillStarted, setBackfillStarted] = useState(false);
+
   useEffect(() => {
-    if (indices.length > 0 && prices.length > 0 && indexHistory.length === 0) {
+    if (indices.length > 0 && prices.length > 0 && indexHistory.length === 0 && !backfillStarted) {
       const isOffline = localStorage.getItem('harbour_auth_mode') === 'offline';
       const isWorkstation = import.meta.env.VITE_APP_ENV === 'local' || import.meta.env.MODE === 'test';
       if (isOffline && isWorkstation) {
+        setBackfillStarted(true);
         console.log('Index history empty in mock workstation mode, executing automatic backfill...');
-        backfillIndices().catch(err => console.error('Auto backfill failed:', err));
+        backfillIndices().catch(err => {
+          console.error('Auto backfill failed:', err);
+          setBackfillStarted(false);
+        });
       }
     }
-  }, [indices, prices, indexHistory]);
+  }, [indices, prices, indexHistory, backfillStarted]);
 
   return (
     <StoreContext.Provider

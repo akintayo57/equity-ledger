@@ -109,14 +109,20 @@ export interface HoldingCalculation {
   currency: Currency;
   country: string;
   exchangeName: string;
+  realizedGainLocal: number;
+  realizedGainUSD: number;
 }
 
 export interface PortfolioSummary {
   totalMarketValueUSD: number;
   totalCostBasisUSD: number;
   unrealizedGainUSD: number;
+  realizedGainUSD: number;
+  capitalGrowthUSD: number;
   capitalGrowthPct: number;
   totalDividendsUSD: number;
+  totalReturnUSD: number;
+  totalReturnPct: number;
 }
 
 export interface IndexDefinition {

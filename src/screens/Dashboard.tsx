@@ -53,10 +53,10 @@ export const Dashboard = () => {
     // Sort transactions chronologically to calculate cost basis correctly
     const sortedTxs = [...txsUpToDate].sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
 
+    let runningCashUSD = 0;
+    let cumulativeDepositsUSD = 0;
+
     sortedTxs.forEach(tx => {
-      if (tx.type === 'DIVIDEND' || tx.type === 'FEE') return;
-      const current = holdingsMap.get(tx.securityId) || { shares: 0, costBasisUSD: 0 };
-      
       // Find historically accurate FX rate on or before the transaction date
       let txFxRate = 1;
       if (tx.currency !== 'USD') {
@@ -68,23 +68,52 @@ export const Dashboard = () => {
       }
       const txFxRateToUSD = 1 / txFxRate;
 
+      if (tx.type === 'DIVIDEND') {
+        const divAmount = tx.shares * tx.pricePerShare;
+        runningCashUSD += divAmount * txFxRateToUSD;
+        return;
+      }
+      if (tx.type === 'FEE') {
+        runningCashUSD -= (tx.fees || 0) * txFxRateToUSD;
+        if (runningCashUSD < 0) {
+          cumulativeDepositsUSD += Math.abs(runningCashUSD);
+          runningCashUSD = 0;
+        }
+        return;
+      }
+      if (tx.type === 'SPLIT') return;
+
+      const current = holdingsMap.get(tx.securityId) || { shares: 0, costBasisUSD: 0 };
+
       if (tx.type === 'BUY') {
         const txCost = (tx.shares * tx.pricePerShare) + (tx.fees || 0);
+        const txCostUSD = txCost * txFxRateToUSD;
         current.shares += tx.shares;
-        current.costBasisUSD += txCost * txFxRateToUSD;
+        current.costBasisUSD += txCostUSD;
+        
+        runningCashUSD -= txCostUSD;
+        if (runningCashUSD < 0) {
+          cumulativeDepositsUSD += Math.abs(runningCashUSD);
+          runningCashUSD = 0;
+        }
       } else if (tx.type === 'INHERIT') {
         current.shares += tx.shares;
       } else if (tx.type === 'SELL') {
         const avgCostUSD = current.shares > 0 ? (current.costBasisUSD / current.shares) : 0;
+        const proceeds = (tx.shares * tx.pricePerShare) - (tx.fees || 0);
+        const proceedsUSD = proceeds * txFxRateToUSD;
+        
         current.shares = Math.max(0, current.shares - tx.shares);
         current.costBasisUSD = Math.max(0, current.costBasisUSD - (tx.shares * avgCostUSD));
+        
+        runningCashUSD += proceedsUSD;
       }
 
       holdingsMap.set(tx.securityId, current);
     });
 
-    let totalValueUSD = 0;
-    let totalCostUSD = 0;
+    let totalValueUSD = runningCashUSD;
+    let totalCostUSD = cumulativeDepositsUSD;
 
     holdingsMap.forEach((data, secId) => {
       if (data.shares <= 0) return;
@@ -132,7 +161,6 @@ export const Dashboard = () => {
       const valLocal = data.shares * price;
       const valUSD = valLocal * fxRateToUSD;
       totalValueUSD += valUSD;
-      totalCostUSD += data.costBasisUSD;
     });
 
     const gain = totalValueUSD - totalCostUSD;
@@ -206,18 +234,20 @@ export const Dashboard = () => {
   }, [holdings]);
 
   const topGainers = useMemo(() => {
-    return [...holdings].sort((a, b) => b.unrealizedGainLossPctUSD - a.unrealizedGainLossPctUSD).slice(0, 3);
+    return [...holdings].filter(h => h.sharesOwned > 0).sort((a, b) => b.unrealizedGainLossPctUSD - a.unrealizedGainLossPctUSD).slice(0, 3);
   }, [holdings]);
 
   const topLosers = useMemo(() => {
-    return [...holdings].sort((a, b) => a.unrealizedGainLossPctUSD - b.unrealizedGainLossPctUSD).slice(0, 3);
+    return [...holdings].filter(h => h.sharesOwned > 0).sort((a, b) => a.unrealizedGainLossPctUSD - b.unrealizedGainLossPctUSD).slice(0, 3);
   }, [holdings]);
 
   // Allocation by country
   const allocation = useMemo(() => {
     const acc = new Map<string, number>();
     holdings.forEach(h => {
-      acc.set(h.country, (acc.get(h.country) || 0) + h.marketValueUSD);
+      if (h.sharesOwned > 0) {
+        acc.set(h.country, (acc.get(h.country) || 0) + h.marketValueUSD);
+      }
     });
     return Array.from(acc.entries()).map(([country, val]) => ({
       country,
@@ -236,33 +266,47 @@ export const Dashboard = () => {
           
           <div className="grid grid-cols-3 gap-3 border-t border-slate-100 dark:border-slate-800 pt-4">
             <div>
-              <div className="text-[10px] text-slate-500 dark:text-slate-400 font-bold uppercase tracking-wider mb-1">Unrealized Gain</div>
+              <div className="text-[10px] text-slate-500 dark:text-slate-400 font-bold uppercase tracking-wider mb-1">Capital Growth</div>
               <div className="flex items-center space-x-0.5">
-                {isGreen ? (
+                {portfolioSummary.capitalGrowthUSD >= 0 ? (
                   <ArrowUpRight className="w-4 h-4 text-emerald-500 dark:text-emerald-400 shrink-0" />
                 ) : (
-                  <ArrowDownRight className="w-4 h-4 text-rose-500 dark:text-rose-400 shrink-0" />
+                  <ArrowDownRight className="w-4 h-4 text-rose-500 dark:text-rose-450 shrink-0" />
                 )}
-                <span className={isGreen ? 'text-emerald-600 dark:text-emerald-450 text-sm font-bold tracking-tight' : 'text-rose-600 dark:text-rose-450 text-sm font-bold tracking-tight'}>
-                  {formatMoney(portfolioSummary.unrealizedGainUSD, 'USD')}
+                <span className={portfolioSummary.capitalGrowthUSD >= 0 ? 'text-emerald-600 dark:text-emerald-400 text-sm font-bold tracking-tight' : 'text-rose-600 dark:text-rose-450 text-sm font-bold tracking-tight'}>
+                  {formatMoney(portfolioSummary.capitalGrowthUSD, 'USD')}
                 </span>
+              </div>
+              <div className={`text-[10px] ${portfolioSummary.capitalGrowthUSD >= 0 ? 'text-emerald-500' : 'text-rose-550'} font-semibold mt-0.5`}>
+                {portfolioSummary.capitalGrowthUSD >= 0 ? '+' : ''}{formatPercentage(portfolioSummary.capitalGrowthPct)}
               </div>
             </div>
             <div>
               <div className="text-[10px] text-slate-500 dark:text-slate-400 font-bold uppercase tracking-wider mb-1">Dividends</div>
               <div className="flex items-center space-x-1">
                 <Award className="w-4 h-4 text-blue-500 dark:text-blue-400 shrink-0" />
-                <span className="text-blue-600 dark:text-blue-400 text-sm font-bold tracking-tight">
+                <span className="text-blue-600 dark:text-blue-450 text-sm font-bold tracking-tight">
                   {formatMoney(portfolioSummary.totalDividendsUSD, 'USD')}
                 </span>
               </div>
+              <div className="text-[10px] text-slate-400 dark:text-slate-500 mt-0.5">
+                Total Cash Received
+              </div>
             </div>
             <div>
-              <div className="text-[10px] text-slate-500 dark:text-slate-400 font-bold uppercase tracking-wider mb-1">Growth</div>
-              <div className="flex items-center">
-                <span className={isGreen ? 'text-emerald-600 dark:text-emerald-400 text-sm font-bold tracking-tight' : 'text-rose-600 dark:text-rose-450 text-sm font-bold tracking-tight'}>
-                  {formatPercentage(portfolioSummary.capitalGrowthPct)}
+              <div className="text-[10px] text-slate-500 dark:text-slate-400 font-bold uppercase tracking-wider mb-1">Total Return</div>
+              <div className="flex items-center space-x-0.5">
+                {portfolioSummary.totalReturnUSD >= 0 ? (
+                  <ArrowUpRight className="w-4 h-4 text-emerald-500 dark:text-emerald-405 shrink-0" />
+                ) : (
+                  <ArrowDownRight className="w-4 h-4 text-rose-500 dark:text-rose-405 shrink-0" />
+                )}
+                <span className={portfolioSummary.totalReturnUSD >= 0 ? 'text-emerald-600 dark:text-emerald-400 text-sm font-bold tracking-tight' : 'text-rose-600 dark:text-rose-450 text-sm font-bold tracking-tight'}>
+                  {formatMoney(portfolioSummary.totalReturnUSD, 'USD')}
                 </span>
+              </div>
+              <div className={`text-[10px] ${portfolioSummary.totalReturnUSD >= 0 ? 'text-emerald-500' : 'text-rose-555'} font-semibold mt-0.5`}>
+                {portfolioSummary.totalReturnUSD >= 0 ? '+' : ''}{formatPercentage(portfolioSummary.totalReturnPct)}
               </div>
             </div>
           </div>
@@ -293,7 +337,7 @@ export const Dashboard = () => {
         <CardContent className="p-5">
           <div className="font-bold text-xs uppercase tracking-widest text-slate-500 dark:text-slate-400 mb-4 border-b border-slate-100 dark:border-slate-800 pb-2">Holdings</div>
           <div className="space-y-3">
-            {holdings.map(h => (
+            {holdings.filter(h => h.sharesOwned > 0).map(h => (
               <Link 
                 to={`/holdings/${h.security.id}`} 
                 key={h.security.id} 
@@ -309,7 +353,7 @@ export const Dashboard = () => {
                 </div>
               </Link>
             ))}
-            {holdings.length === 0 && (
+            {holdings.filter(h => h.sharesOwned > 0).length === 0 && (
               <div className="text-slate-400 dark:text-slate-500 text-xs py-4 text-center border border-dashed border-slate-200 dark:border-slate-800 rounded-xl bg-slate-50/50 dark:bg-slate-900/30">
                 No active holdings in portfolio. Log purchases in the Transactions section below to construct your ledger.
               </div>
@@ -324,12 +368,12 @@ export const Dashboard = () => {
           <div className="font-bold text-xs uppercase tracking-widest text-slate-500 dark:text-slate-400 mb-4 border-b border-slate-100 dark:border-slate-800 pb-2">Portfolio Performance</div>
           
           <div className="text-center mb-6">
-            <h2 className="text-sm font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1">Overall Return</h2>
-            <div className={`text-4xl font-bold ${portfolioSummary.unrealizedGainUSD >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400'}`}>
-              {portfolioSummary.unrealizedGainUSD >= 0 ? '+' : ''}{formatPercentage(portfolioSummary.capitalGrowthPct)}
+            <h2 className="text-sm font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1">Overall Return (Total Return)</h2>
+            <div className={`text-4xl font-bold ${portfolioSummary.totalReturnUSD >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400'}`}>
+              {portfolioSummary.totalReturnUSD >= 0 ? '+' : ''}{formatPercentage(portfolioSummary.totalReturnPct)}
             </div>
             <div className="text-slate-500 dark:text-slate-400 mt-1">
-              {portfolioSummary.unrealizedGainUSD >= 0 ? '+' : ''}{formatMoney(portfolioSummary.unrealizedGainUSD, 'USD')}
+              {portfolioSummary.totalReturnUSD >= 0 ? '+' : ''}{formatMoney(portfolioSummary.totalReturnUSD, 'USD')}
             </div>
           </div>
           

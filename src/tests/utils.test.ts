@@ -48,18 +48,18 @@ describe('calculateHoldings tests', () => {
   ];
 
   const mockSecurities: Security[] = [
-    { id: 'GDI', companyName: 'Guyana Development Inc', ticker: 'GDI', exchangeId: 'GASCI', sector: 'Financial' },
-    { id: 'BHL', companyName: 'Banks Barbados Ltd', ticker: 'BHL', exchangeId: 'BSE', sector: 'Beverage' }
+    { id: 'GDI', companyName: 'Guyana Development Inc', ticker: 'GDI', exchangeId: 'GASCI', sector: 'Financial', status: 'ACTIVE' },
+    { id: 'BHL', companyName: 'Banks Barbados Ltd', ticker: 'BHL', exchangeId: 'BSE', sector: 'Beverage', status: 'ACTIVE' }
   ];
 
   const mockPrices: PriceUpdate[] = [
-    { id: 'p1', securityId: 'GDI', price: 150, date: '2026-06-01' },
-    { id: 'p2', securityId: 'BHL', price: 10, date: '2026-06-01' }
+    { id: 'p1', securityId: 'GDI', price: 150, date: '2026-06-01', currency: 'GYD', source: 'mock' },
+    { id: 'p2', securityId: 'BHL', price: 10, date: '2026-06-01', currency: 'BBD', source: 'mock' }
   ];
 
   const mockFxRates: FXRate[] = [
-    { id: 'fx1', fromCurrency: 'USD', toCurrency: 'GYD', rate: 200, date: '2026-05-01' },
-    { id: 'fx2', fromCurrency: 'USD', toCurrency: 'BBD', rate: 2, date: '2026-05-01' }
+    { id: 'fx1', fromCurrency: 'USD', toCurrency: 'GYD', rate: 200, date: '2026-05-01', source: 'mock' },
+    { id: 'fx2', fromCurrency: 'USD', toCurrency: 'BBD', rate: 2, date: '2026-05-01', source: 'mock' }
   ];
 
   it('should calculate holdings correctly for a BUY and SELL transaction', () => {
@@ -149,6 +149,30 @@ describe('calculateHoldings tests', () => {
     
     expect(gdi?.portfolioWeight).toBe(60);
     expect(bhl?.portfolioWeight).toBe(40);
+  });
+
+  it('should calculate realized gains/losses on SELL transactions and preserve closed positions', () => {
+    const transactions: Transaction[] = [
+      { id: 't1', securityId: 'GDI', type: 'BUY', shares: 100, pricePerShare: 100, date: '2026-05-10', currency: 'GYD', fees: 10, accountId: 'acc1' }, // cost = 10010, avgCost = 100.1
+      { id: 't2', securityId: 'GDI', type: 'SELL', shares: 60, pricePerShare: 120, date: '2026-05-15', currency: 'GYD', fees: 5, accountId: 'acc1' },  // proceeds = 7195, costOfSold = 6006, gain = 1189
+      { id: 't3', securityId: 'GDI', type: 'SELL', shares: 40, pricePerShare: 130, date: '2026-05-20', currency: 'GYD', fees: 4, accountId: 'acc1' }   // proceeds = 5196, costOfSold = 4004, gain = 1192
+    ];
+
+    const result = calculateHoldings(mockSecurities, transactions, mockPrices, mockFxRates, mockExchanges);
+    
+    // GDI shares owned should be 0
+    const gdiHolding = result.find(h => h.security.id === 'GDI');
+    expect(gdiHolding).toBeDefined();
+    expect(gdiHolding?.sharesOwned).toBe(0);
+    
+    // Cost basis & market value should be 0
+    expect(gdiHolding?.totalCostBasis).toBe(0);
+    expect(gdiHolding?.marketValueLocal).toBe(0);
+    
+    // Total realized gain local = 1189 + 1192 = 2381 GYD
+    expect(gdiHolding?.realizedGainLocal).toBeCloseTo(2381, 1);
+    // Total realized gain USD = 2381 / 200 = 11.905 USD
+    expect(gdiHolding?.realizedGainUSD).toBeCloseTo(11.905, 3);
   });
 });
 
