@@ -7,6 +7,17 @@ import { Link } from 'react-router-dom';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { format } from 'date-fns';
 
+const getFlagByExchangeId = (exchangeId: string) => {
+  const flags: Record<string, string> = {
+    GASCI: '🇬🇾',
+    BSE: '🇧🇧',
+    JSE: '🇯🇲',
+    TTSE: '🇹🇹',
+    ECSE: '🇰🇳'
+  };
+  return flags[exchangeId] || '🌐';
+};
+
 export const Markets = () => {
   const { 
     securities, 
@@ -37,13 +48,18 @@ export const Markets = () => {
       const companyName = s.companyName || '';
       const ticker = s.ticker || '';
       const exchangeId = s.exchangeId || '';
+      const ex = exchanges.find(e => e.id === s.exchangeId);
+      const country = ex ? ex.country : '';
+      const exchangeName = ex ? ex.name : '';
       return (
         companyName.toLowerCase().includes(query) ||
         ticker.toLowerCase().includes(query) ||
-        exchangeId.toLowerCase().includes(query)
+        exchangeId.toLowerCase().includes(query) ||
+        country.toLowerCase().includes(query) ||
+        exchangeName.toLowerCase().includes(query)
       );
     });
-  }, [securities, searchQuery]);
+  }, [securities, searchQuery, exchanges]);
 
   // Selected security stats
   const selectedExInfo = useMemo(() => {
@@ -419,14 +435,20 @@ export const Markets = () => {
                 >
                   <div>
                     <div className="font-extrabold text-sm text-slate-900 dark:text-white flex items-center">
+                      <span className="text-base mr-1.5 select-none">{getFlagByExchangeId(sec.exchangeId)}</span>
                       {sec.ticker}
                       {sec.status === 'INACTIVE' && (
-                        <span className="ml-1.5 inline-flex items-center px-1 py-0.2 rounded text-[8px] font-bold bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-400 border border-slate-200/40 dark:border-slate-700/30 normal-case tracking-normal">
+                        <span className="ml-1.5 inline-flex items-center px-1 py-0.2 rounded text-[8px] font-bold bg-slate-100 text-slate-650 dark:bg-slate-800 dark:text-slate-400 border border-slate-200/40 dark:border-slate-700/30 normal-case tracking-normal">
                           Defunct
                         </span>
                       )}
                     </div>
                     <div className="text-xs text-slate-500 dark:text-slate-400 truncate max-w-[200px] sm:max-w-xs">{sec.companyName}</div>
+                    <div className="text-[10px] text-slate-400 dark:text-slate-500 mt-0.5 flex items-center space-x-1 font-medium">
+                      <span>{exchanges.find(e => e.id === sec.exchangeId)?.name || sec.exchangeId}</span>
+                      <span>•</span>
+                      <span>{exchanges.find(e => e.id === sec.exchangeId)?.country || 'Unknown'}</span>
+                    </div>
                   </div>
                   <Badge variant={sec.exchangeId === 'GASCI' ? 'blue' : 'yellow'}>{sec.exchangeId}</Badge>
                 </button>
@@ -880,6 +902,7 @@ export const Markets = () => {
                               
                               <div className="min-w-0">
                                 <div className="flex items-center space-x-1.5">
+                                  <span className="text-base select-none">{getFlagByExchangeId(mover.security.exchangeId)}</span>
                                   <span className="font-extrabold text-slate-900 dark:text-white text-sm tracking-tight">{mover.security.ticker}</span>
                                   <Badge variant={mover.security.exchangeId === 'GASCI' ? 'blue' : 'yellow'}>
                                     {mover.security.exchangeId}
@@ -944,6 +967,7 @@ export const Markets = () => {
                               
                               <div className="min-w-0">
                                 <div className="flex items-center space-x-1.5">
+                                  <span className="text-base select-none">{getFlagByExchangeId(mover.security.exchangeId)}</span>
                                   <span className="font-extrabold text-slate-900 dark:text-white text-sm tracking-tight">{mover.security.ticker}</span>
                                   <Badge variant={mover.security.exchangeId === 'GASCI' ? 'blue' : 'yellow'}>
                                     {mover.security.exchangeId}

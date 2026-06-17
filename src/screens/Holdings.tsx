@@ -10,6 +10,17 @@ import { Security } from '../types';
 
 const COLORS = ['#2563eb', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#06b6d4', '#ec4899'];
 
+const getFlagByExchangeId = (exchangeId: string) => {
+  const flags: Record<string, string> = {
+    GASCI: '🇬🇾',
+    BSE: '🇧🇧',
+    JSE: '🇯🇲',
+    TTSE: '🇹🇹',
+    ECSE: '🇰🇳'
+  };
+  return flags[exchangeId] || '🌐';
+};
+
 // Reusable helper to resolve exchange info
 const getExchangeInfoHelper = (sec: Security, exchanges: any[]) => {
   const ex = exchanges.find(e => e.id === sec.exchangeId);
@@ -36,8 +47,9 @@ export const HoldingsList = () => {
 
   // Filter all securities matching the search term
   const portfolioItems = useMemo(() => {
+    const activeHoldings = holdings.filter(h => h.sharesOwned > 0);
     if (searchTerm === '') {
-      return holdings.map(h => ({ type: 'owned' as const, holding: h, security: h.security }));
+      return activeHoldings.map(h => ({ type: 'owned' as const, holding: h, security: h.security }));
     }
     
     const term = searchTerm.toLowerCase();
@@ -47,7 +59,7 @@ export const HoldingsList = () => {
     );
     
     return matching.map(s => {
-      const h = holdings.find(item => item.security.id === s.id);
+      const h = activeHoldings.find(item => item.security.id === s.id);
       if (h) {
         return { type: 'owned' as const, holding: h, security: s };
       }
@@ -225,49 +237,11 @@ export const HoldingsList = () => {
   );
 };
 
-// Component 2: Watchlist Tab (with performance chart comparison)
+// Component 2: Watchlist Tab
 export const WatchlistTab = () => {
   const { securities, watchlist, prices, exchanges, toggleWatchlist } = useStore();
   const [searchTerm, setSearchTerm] = useState('');
   const navigate = useNavigate();
-
-  const watchlistSecurities = useMemo(() => {
-    return securities.filter(s => watchlist.includes(s.id));
-  }, [securities, watchlist]);
-
-  // Dynamic watchlist comparison graph data
-  const watchlistChartData = useMemo(() => {
-    if (watchlistSecurities.length === 0) return [];
-    
-    const dateIntervals: string[] = [];
-    for (let i = 12; i >= 0; i--) {
-      const d = subDays(new Date(), i * 14);
-      dateIntervals.push(d.toISOString().split('T')[0]);
-    }
-
-    const getPriceOnDate = (secId: string, dateStr: string) => {
-      const match = prices
-        .filter(p => p.securityId === secId && p.date <= dateStr)
-        .sort((a, b) => b.date.localeCompare(a.date));
-      if (match.length > 0) return match[0].price;
-      
-      const allSecPrices = prices
-        .filter(p => p.securityId === secId)
-        .sort((a, b) => a.date.localeCompare(b.date));
-      return allSecPrices.length > 0 ? allSecPrices[0].price : 0;
-    };
-
-    return dateIntervals.map(dateStr => {
-      const row: any = { date: format(new Date(dateStr), 'MMM d') };
-      watchlistSecurities.forEach(sec => {
-        const p0 = getPriceOnDate(sec.id, dateIntervals[0]);
-        const pt = getPriceOnDate(sec.id, dateStr);
-        const changePct = p0 > 0 ? ((pt - p0) / p0) * 100 : 0;
-        row[sec.ticker] = Number(changePct.toFixed(1));
-      });
-      return row;
-    });
-  }, [watchlistSecurities, prices]);
 
   const watchlistItems = useMemo(() => {
     if (searchTerm === '') {
@@ -291,49 +265,6 @@ export const WatchlistTab = () => {
 
   return (
     <div className="space-y-4">
-      {/* Watchlist Comparison Chart */}
-      {watchlistSecurities.length > 0 && (
-        <Card className="bg-white">
-          <CardContent className="p-4">
-            <div className="flex items-center space-x-2 mb-3 border-b border-slate-100 pb-2">
-              <TrendingUp className="w-4 h-4 text-blue-600" />
-              <h3 className="font-semibold text-slate-850 text-xs uppercase tracking-wider">Watchlist Price Performance (% Change, 6M)</h3>
-            </div>
-            <div className="h-44 w-full">
-              <ResponsiveContainer width="100%" height="100%">
-                <LineChart data={watchlistChartData} margin={{ top: 5, right: 10, left: -25, bottom: 0 }}>
-                  <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
-                  <XAxis dataKey="date" axisLine={false} tickLine={false} tick={{ fontSize: 9, fill: '#64748b' }} dy={10} />
-                  <YAxis 
-                    axisLine={false} 
-                    tickLine={false} 
-                    tick={{ fontSize: 9, fill: '#64748b' }} 
-                    tickFormatter={(val) => `${val >= 0 ? '+' : ''}${val}%`}
-                  />
-                  <Tooltip 
-                    contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }}
-                    itemStyle={{ fontSize: '11px', fontWeight: 'bold' }}
-                    labelStyle={{ fontSize: '10px', color: '#64748b', marginBottom: '3px' }}
-                    formatter={(value: number) => [`${value >= 0 ? '+' : ''}${value}%`, 'Change']}
-                  />
-                  <Legend iconType="circle" wrapperStyle={{ fontSize: '10px', paddingTop: '10px' }} />
-                  {watchlistSecurities.map((sec, idx) => (
-                    <Line 
-                      key={sec.id}
-                      type="monotone"
-                      dataKey={sec.ticker}
-                      stroke={COLORS[idx % COLORS.length]}
-                      strokeWidth={2}
-                      dot={false}
-                    />
-                  ))}
-                </LineChart>
-              </ResponsiveContainer>
-            </div>
-          </CardContent>
-        </Card>
-      )}
-
       {/* Search Input */}
       <div className="flex items-center space-x-2">
         <div className="relative flex-1">
@@ -341,12 +272,12 @@ export const WatchlistTab = () => {
           <input
             type="text"
             placeholder="Search watchlist and market..."
-            className="w-full pl-9 pr-4 py-2 bg-white border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="w-full pl-9 pr-4 py-2 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 text-slate-900 dark:text-white"
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
           />
         </div>
-        <button className="p-2.5 bg-white border border-slate-200 rounded-lg text-slate-600 cursor-pointer">
+        <button className="p-2.5 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg text-slate-650 cursor-pointer">
           <Filter className="w-4 h-4" />
         </button>
       </div>
@@ -359,58 +290,101 @@ export const WatchlistTab = () => {
           const isWatched = watchlist.includes(s.id);
           const info = getExchangeInfoHelper(s, exchanges);
 
+          // Get price history for the security
+          const secPrices = prices
+            .filter(p => p.securityId === s.id)
+            .sort((a, b) => a.date.localeCompare(b.date)); // chronological
+
+          const oldestDate = secPrices.length > 0 ? secPrices[0].date : '';
+          const daysOfHistory = oldestDate ? Math.floor((Date.now() - new Date(oldestDate).getTime()) / 86400000) : 0;
+          const hasShortHistory = daysOfHistory < 365;
+
+          const oneYearAgoStr = subDays(new Date(), 365).toISOString().split('T')[0];
+          const sparklinePrices = secPrices.filter(p => p.date >= oneYearAgoStr);
+          const sparklineData = sparklinePrices.map(p => ({
+            date: p.date,
+            price: p.price
+          }));
+
+          if (sparklineData.length === 1) {
+            sparklineData.unshift({
+              date: subDays(new Date(sparklineData[0].date), 30).toISOString().split('T')[0],
+              price: sparklineData[0].price
+            });
+          } else if (sparklineData.length === 0) {
+            const latestPrice = lastPrice || 0;
+            sparklineData.push(
+              { date: subDays(new Date(), 30).toISOString().split('T')[0], price: latestPrice },
+              { date: new Date().toISOString().split('T')[0], price: latestPrice }
+            );
+          }
+
+          const pStart = sparklineData[0].price;
+          const pEnd = sparklineData[sparklineData.length - 1].price;
+          const growthPct = pStart > 0 ? ((pEnd - pStart) / pStart) * 100 : 0;
+
           if (item.type === 'watchlisted') {
             return (
               <Link to={`/holdings/${s.id}`} state={{ fromWatchlist: true }} key={s.id} className="block">
-                <Card className="hover:border-blue-300 transition-colors">
-                  <CardContent className="p-4">
-                    <div className="flex justify-between items-start mb-2">
-                      <div>
-                        <div className="flex items-center space-x-2">
-                          <span className="font-bold text-slate-900">{s.ticker}</span>
-                          {s.status === 'INACTIVE' && (
-                            <span className="inline-flex items-center px-1.5 py-0.2 rounded text-[9px] font-bold bg-slate-100 text-slate-650 border border-slate-200">
-                              Defunct
-                            </span>
-                          )}
-                        </div>
-                        <div className="text-xs text-slate-500 truncate max-w-[200px] mt-0.5">
-                          {s.companyName}
-                        </div>
+                <Card className="hover:border-blue-300 dark:hover:border-blue-400 transition-colors bg-white dark:bg-slate-900 text-slate-900 dark:text-white border-slate-100 dark:border-slate-800 shadow-xs">
+                  <CardContent className="p-4 flex items-center justify-between space-x-3">
+                    {/* Left: Ticker & Name */}
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-center space-x-1.5">
+                        <span className="text-base select-none">{getFlagByExchangeId(s.exchangeId)}</span>
+                        <span className="font-bold text-slate-900 dark:text-white tracking-tight">{s.ticker}</span>
+                        {s.status === 'INACTIVE' && (
+                          <span className="inline-flex items-center px-1.5 py-0.2 rounded text-[8px] font-bold bg-slate-100 dark:bg-slate-800 text-slate-650 dark:text-slate-405 border border-slate-200 dark:border-slate-700/30">
+                            Defunct
+                          </span>
+                        )}
                       </div>
-                      
-                      <div className="flex items-start space-x-2">
-                        <div className="text-right">
-                          <div className="font-bold text-slate-900">{lastPrice > 0 ? formatMoney(lastPrice, info.currency) : 'No Price'}</div>
-                          <div className="text-xs text-slate-500">{info.currency}</div>
-                        </div>
-                        <div className="flex flex-col space-y-1.5 pl-2" onClick={(e) => { e.preventDefault(); e.stopPropagation(); }}>
-                          <button
-                            onClick={() => toggleWatchlist(s.id)}
-                            className="p-1.5 hover:bg-slate-100 rounded-lg text-rose-500 transition-colors cursor-pointer"
-                            title="Remove from Watchlist"
-                          >
-                            <Heart className="w-3.5 h-3.5 fill-rose-500 text-rose-500" />
-                          </button>
-                          <button
-                            onClick={() => navigate('/portfolio', { state: { activeTab: 'SUMMARY', showAdd: true, securityId: s.id } })}
-                            className="p-1.5 hover:bg-slate-100 rounded-lg text-slate-400 hover:text-blue-600 transition-colors cursor-pointer"
-                            title="Add Transaction"
-                          >
-                            <Plus className="w-3.5 h-3.5" />
-                          </button>
-                        </div>
+                      <div className="text-[11px] text-slate-400 dark:text-slate-500 truncate max-w-[120px] sm:max-w-[180px] mt-0.5 font-medium">
+                        {s.companyName}
                       </div>
                     </div>
-                    
-                    <div className="flex justify-between items-end mt-4">
-                      <div className="flex space-x-2">
-                        <Badge variant="gray">{info.country}</Badge>
-                        <Badge variant="gray">{s.sector}</Badge>
+
+                    {/* Center: Sparkline */}
+                    <div className="w-20 sm:w-28 h-8 shrink-0">
+                      <ResponsiveContainer width="100%" height="100%">
+                        <LineChart data={sparklineData}>
+                          <Line
+                            type="monotone"
+                            dataKey="price"
+                            stroke={growthPct >= 0 ? '#10b981' : '#ef4444'}
+                            strokeWidth={1.5}
+                            dot={false}
+                          />
+                        </LineChart>
+                      </ResponsiveContainer>
+                    </div>
+
+                    {/* Right: Latest Price & Performance */}
+                    <div className="text-right shrink-0 flex items-center space-x-3.5">
+                      <div>
+                        <div className="font-extrabold text-sm text-slate-900 dark:text-white tracking-tight">
+                          {lastPrice > 0 ? formatMoney(lastPrice, info.currency) : 'No Price'}
+                        </div>
+                        <div className="text-[10px] text-slate-450 dark:text-slate-500 mt-0.5 flex items-center justify-end space-x-1">
+                          {hasShortHistory && (
+                            <AlertTriangle className="w-3 h-3 text-amber-500 shrink-0" title="Short history (< 1 year)" />
+                          )}
+                          <span className={`font-bold ${growthPct >= 0 ? 'text-emerald-650 dark:text-emerald-450' : 'text-rose-600 dark:text-rose-455'}`}>
+                            {growthPct >= 0 ? '+' : ''}{growthPct.toFixed(1)}%
+                          </span>
+                        </div>
                       </div>
-                      {s.fundamentals?.peRatio && (
-                         <div className="text-xs font-semibold text-slate-500">P/E: {s.fundamentals.peRatio.toFixed(1)}</div>
-                      )}
+
+                      {/* Watchlist Toggle / Heart Action */}
+                      <div className="flex flex-col space-y-1.5" onClick={(e) => { e.preventDefault(); e.stopPropagation(); }}>
+                        <button
+                          onClick={() => toggleWatchlist(s.id)}
+                          className="p-1 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg text-rose-500 transition-colors cursor-pointer"
+                          title="Remove from Watchlist"
+                        >
+                          <Heart className="w-3.5 h-3.5 fill-rose-500 text-rose-500" />
+                        </button>
+                      </div>
                     </div>
                   </CardContent>
                 </Card>
@@ -420,56 +394,66 @@ export const WatchlistTab = () => {
             // Market Item (Add to Watchlist Search Results)
             return (
               <Link to={`/holdings/${s.id}`} state={{ fromWatchlist: true }} key={s.id} className="block">
-                <Card className="hover:border-blue-300 border-dashed transition-colors">
-                  <CardContent className="p-4">
-                    <div className="flex justify-between items-start mb-2">
-                      <div>
-                        <div className="flex items-center space-x-2">
-                          <span className="font-bold text-slate-900">{s.ticker}</span>
-                          {s.status === 'INACTIVE' && (
-                            <span className="inline-flex items-center px-1.5 py-0.2 rounded text-[9px] font-bold bg-slate-100 text-slate-650 border border-slate-200">
-                              Defunct
-                            </span>
-                          )}
-                          <Badge variant="blue">Market</Badge>
-                        </div>
-                        <div className="text-xs text-slate-500 truncate max-w-[200px] mt-0.5">
-                          {s.companyName}
-                        </div>
+                <Card className="hover:border-blue-300 border-dashed dark:hover:border-blue-400 transition-colors bg-white dark:bg-slate-900 text-slate-900 dark:text-white border-slate-100 dark:border-slate-800 shadow-xs">
+                  <CardContent className="p-4 flex items-center justify-between space-x-3">
+                    {/* Left: Ticker & Name */}
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-center space-x-1.5">
+                        <span className="text-base select-none">{getFlagByExchangeId(s.exchangeId)}</span>
+                        <span className="font-bold text-slate-900 dark:text-white tracking-tight">{s.ticker}</span>
+                        {s.status === 'INACTIVE' && (
+                          <span className="inline-flex items-center px-1.5 py-0.2 rounded text-[8px] font-bold bg-slate-100 dark:bg-slate-800 text-slate-650 dark:text-slate-405 border border-slate-200 dark:border-slate-700/30">
+                            Defunct
+                          </span>
+                        )}
+                        <Badge variant="blue">Market</Badge>
                       </div>
-                      
-                      <div className="flex items-start space-x-2">
-                        <div className="text-right">
-                          <div className="font-bold text-slate-900">{lastPrice > 0 ? formatMoney(lastPrice, info.currency) : 'No Price'}</div>
-                          <div className="text-xs text-slate-500">{info.currency}</div>
-                        </div>
-                        <div className="flex flex-col space-y-1.5 pl-2" onClick={(e) => { e.preventDefault(); e.stopPropagation(); }}>
-                          <button
-                            onClick={() => toggleWatchlist(s.id)}
-                            className="p-1.5 hover:bg-slate-100 rounded-lg text-slate-400 hover:text-rose-500 transition-colors cursor-pointer"
-                            title="Add to Watchlist"
-                          >
-                            <Heart className="w-3.5 h-3.5 text-slate-400" />
-                          </button>
-                          <button
-                            onClick={() => navigate('/portfolio', { state: { activeTab: 'SUMMARY', showAdd: true, securityId: s.id } })}
-                            className="p-1.5 hover:bg-slate-100 rounded-lg text-slate-400 hover:text-blue-600 transition-colors cursor-pointer"
-                            title="Add Transaction"
-                          >
-                            <Plus className="w-3.5 h-3.5" />
-                          </button>
-                        </div>
+                      <div className="text-[11px] text-slate-400 dark:text-slate-500 truncate max-w-[120px] sm:max-w-[180px] mt-0.5 font-medium">
+                        {s.companyName}
                       </div>
                     </div>
-                    
-                    <div className="flex justify-between items-end mt-4">
-                      <div className="flex space-x-2">
-                        <Badge variant="gray">{info.country}</Badge>
-                        <Badge variant="gray">{s.sector}</Badge>
+
+                    {/* Center: Sparkline */}
+                    <div className="w-20 sm:w-28 h-8 shrink-0">
+                      <ResponsiveContainer width="100%" height="100%">
+                        <LineChart data={sparklineData}>
+                          <Line
+                            type="monotone"
+                            dataKey="price"
+                            stroke={growthPct >= 0 ? '#10b981' : '#ef4444'}
+                            strokeWidth={1.5}
+                            dot={false}
+                          />
+                        </LineChart>
+                      </ResponsiveContainer>
+                    </div>
+
+                    {/* Right: Latest Price & Performance */}
+                    <div className="text-right shrink-0 flex items-center space-x-3.5">
+                      <div>
+                        <div className="font-extrabold text-sm text-slate-900 dark:text-white tracking-tight">
+                          {lastPrice > 0 ? formatMoney(lastPrice, info.currency) : 'No Price'}
+                        </div>
+                        <div className="text-[10px] text-slate-455 dark:text-slate-500 mt-0.5 flex items-center justify-end space-x-1">
+                          {hasShortHistory && (
+                            <AlertTriangle className="w-3 h-3 text-amber-500 shrink-0" title="Short history (< 1 year)" />
+                          )}
+                          <span className={`font-bold ${growthPct >= 0 ? 'text-emerald-650 dark:text-emerald-450' : 'text-rose-600 dark:text-rose-455'}`}>
+                            {growthPct >= 0 ? '+' : ''}{growthPct.toFixed(1)}%
+                          </span>
+                        </div>
                       </div>
-                      {s.fundamentals?.peRatio && (
-                         <div className="text-xs font-semibold text-slate-500">P/E: {s.fundamentals.peRatio.toFixed(1)}</div>
-                      )}
+
+                      {/* Watchlist Toggle / Heart Action */}
+                      <div className="flex flex-col space-y-1.5" onClick={(e) => { e.preventDefault(); e.stopPropagation(); }}>
+                        <button
+                          onClick={() => toggleWatchlist(s.id)}
+                          className="p-1 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg text-slate-400 hover:text-rose-500 transition-colors cursor-pointer"
+                          title="Add to Watchlist"
+                        >
+                          <Heart className="w-3.5 h-3.5 text-slate-400" />
+                        </button>
+                      </div>
                     </div>
                   </CardContent>
                 </Card>
