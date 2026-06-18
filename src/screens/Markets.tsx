@@ -31,12 +31,12 @@ export const Markets = () => {
     theme
   } = useStore();
 
-  const [selectedExchange, setSelectedExchange] = useState<'ALL' | 'GASCI' | 'BSE' | 'JSE' | 'TTSE' | 'ECSE'>('ALL');
+  const [selectedExchange, setSelectedExchange] = useState<'ALL' | 'BSE' | 'ECSE' | 'GASCI' | 'JSE' | 'TTSE'>('ALL');
 
   const [searchQuery, setSearchQuery] = useState('');
   const [showDropdown, setShowDropdown] = useState(false);
   const [selectedSecurity, setSelectedSecurity] = useState<any | null>(null);
-  const [selectedIndexId, setSelectedIndexId] = useState<'GASCI' | 'BSE' | 'JSE' | 'TTSE' | 'ECSE' | null>(null);
+  const [selectedIndexId, setSelectedIndexId] = useState<'BSE' | 'ECSE' | 'GASCI' | 'JSE' | 'TTSE' | null>(null);
   const [isCompositionExpanded, setIsCompositionExpanded] = useState(false);
   const [chartRange, setChartRange] = useState<'1M' | '3M' | '6M' | '1Y' | 'ALL'>('6M');
 
@@ -186,6 +186,12 @@ export const Markets = () => {
     return summary;
   }, [indices, indexHistory]);
 
+  // Filter indices to only show those with at least one stock equity associated, sorted alphabetically
+  const sortedIndices = useMemo(() => {
+    return [...indices]
+      .filter(idx => securities.some(s => s.exchangeId === idx.exchangeId))
+      .sort((a, b) => a.id.localeCompare(b.id));
+  }, [indices, securities]);
 
   // Find the latest price date for each exchange
   const latestDateByExchange = useMemo(() => {
@@ -791,7 +797,7 @@ export const Markets = () => {
           {/* Market Indices Panel */}
           <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
             {(() => {
-              return indices.map(idx => {
+              return sortedIndices.map(idx => {
                 const indexData = indicesSummary[idx.id];
                 const colorClass = idx.color === 'emerald' ? 'text-emerald-500 dark:text-emerald-400' :
                                    idx.color === 'yellow' ? 'text-yellow-500 dark:text-yellow-400' :
@@ -851,7 +857,7 @@ export const Markets = () => {
                 
                 {/* Filter Swaps */}
                 <div className="flex space-x-1 bg-slate-100 dark:bg-slate-800/50 p-1 rounded-lg text-xs font-semibold border border-transparent dark:border-slate-700/30">
-                  {(['ALL', 'GASCI', 'BSE', 'JSE', 'TTSE', 'ECSE'] as const).map(ex => (
+                  {(['ALL', 'BSE', 'ECSE', 'GASCI', 'JSE', 'TTSE'] as const).map(ex => (
                     <button
                       key={ex}
                       onClick={() => setSelectedExchange(ex)}
