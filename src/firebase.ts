@@ -19,7 +19,7 @@ import {
   deleteDoc as realDeleteDoc,
   updateDoc as realUpdateDoc
 } from 'firebase/firestore';
-import { initialSecurities, initialPrices, initialFXRates, initialIndices } from './mockData';
+import { initialSecurities, initialPrices, initialFXRates } from './mockData';
 
 const firebaseConfig = {
   apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
@@ -230,7 +230,7 @@ const getMockCollection = (collectionPath: string): any[] => {
   } else if (collectionPath === 'securities') {
     initialData = initialSecurities.map(s => {
       // s.exchange is the legacy property name in mockData, map it to exchangeId
-      const exchangeId = (s as any).exchange || 'GASCI';
+      const exchangeId = (s as any).exchange || s.exchangeId || 'GASCI';
       return {
         id: s.id,
         companyName: s.companyName,
@@ -238,6 +238,7 @@ const getMockCollection = (collectionPath: string): any[] => {
         exchangeId,
         sector: s.sector,
         status: s.status,
+        type: s.type || 'EQUITY',
         fundamentals: s.fundamentals,
         currency: s.currency
       };
@@ -249,7 +250,7 @@ const getMockCollection = (collectionPath: string): any[] => {
   } else if (collectionPath === 'equityNotes') {
     initialData = [];
   } else if (collectionPath === 'indices') {
-    initialData = initialIndices;
+    initialData = [];
   } else if (collectionPath === 'indexHistory') {
     initialData = [];
   } else if (collectionPath.endsWith('/accounts')) {

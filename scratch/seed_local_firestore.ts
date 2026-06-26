@@ -14,29 +14,44 @@ import {
   signInAnonymously 
 } from 'firebase/auth';
 
-// Load environment configuration from .env.workstation
-const envFile = '.env.workstation';
+const isLocal = process.argv.includes('--local') || (!process.argv.includes('--cloud'));
+const isCloud = process.argv.includes('--cloud');
+
+let projectOverride: string | null = null;
+const projectArgIndex = process.argv.indexOf('--project');
+if (projectArgIndex !== -1 && projectArgIndex + 1 < process.argv.length) {
+  projectOverride = process.argv[projectArgIndex + 1];
+}
+
+const envFile = isCloud ? '.env.development' : '.env.workstation';
 console.log(`Loading environment config from ${envFile}...`);
-dotenv.config({ path: envFile });
+if (fs.existsSync(envFile)) {
+  dotenv.config({ path: envFile });
+}
+
+const projectId = projectOverride || process.env.VITE_FIREBASE_PROJECT_ID || 'harbour-finance-902b';
+console.log(`Using Firebase Project ID: ${projectId}`);
 
 const firebaseConfig = {
-  apiKey: process.env.VITE_FIREBASE_API_KEY,
-  authDomain: process.env.VITE_FIREBASE_AUTH_DOMAIN,
-  projectId: process.env.VITE_FIREBASE_PROJECT_ID,
-  storageBucket: process.env.VITE_FIREBASE_STORAGE_BUCKET,
-  messagingSenderId: process.env.VITE_FIREBASE_MESSAGING_SENDER_ID,
-  appId: process.env.VITE_FIREBASE_APP_ID,
+  apiKey: process.env.VITE_FIREBASE_API_KEY || 'mock-api-key',
+  authDomain: process.env.VITE_FIREBASE_AUTH_DOMAIN || 'localhost',
+  projectId: projectId,
+  storageBucket: process.env.VITE_FIREBASE_STORAGE_BUCKET || `${projectId}.appspot.com`,
+  messagingSenderId: process.env.VITE_FIREBASE_MESSAGING_SENDER_ID || '123456789',
+  appId: process.env.VITE_FIREBASE_APP_ID || '1:123456789:web:mock',
 };
 
-// Initialize Firebase
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 const auth = getAuth(app);
 
-console.log('Connecting to local Firestore emulator at localhost:8080...');
-connectFirestoreEmulator(db, 'localhost', 8080);
-console.log('Connecting to local Auth emulator at http://localhost:9099...');
-connectAuthEmulator(auth, 'http://localhost:9099');
+if (!isCloud) {
+  console.log('Connecting to local Firestore emulator...');
+  connectFirestoreEmulator(db, '127.0.0.1', 8080);
+  connectAuthEmulator(auth, 'http://127.0.0.1:9099');
+} else {
+  console.log('Connecting directly to Cloud Firestore...');
+}
 
 function parseCSV(content: string): string[][] {
   const lines = content.split('\n');
@@ -339,19 +354,34 @@ async function seedPrices(tickerToDocId: Record<string, { id: string, exchangeId
     }
   }
 
-  console.log(`Starting batch upload of ${allPrices.length} total prices in chunks of 500...`);
+  console.log(`Aggregating ${allPrices.length} prices into yearly buckets...`);
+  const bucketMap = new Map<string, any>();
+  allPrices.forEach(px => {
+    const year = px.date.substring(0, 4);
+    const bucketId = `${px.securityId}_${year}`;
+    if (!bucketMap.has(bucketId)) {
+      bucketMap.set(bucketId, { securityId: px.securityId, year, prices: [] });
+    }
+    const { id, ...pxData } = px;
+    bucketMap.get(bucketId).prices.push(pxData);
+  });
+
+  const buckets = Array.from(bucketMap.entries());
+  console.log(`Starting batch upload of ${buckets.length} bucket documents in chunks of 500...`);
+  
   const chunkSize = 500;
-  for (let i = 0; i < allPrices.length; i += chunkSize) {
-    const chunk = allPrices.slice(i, i + chunkSize);
+  for (let i = 0; i < buckets.length; i += chunkSize) {
+    const chunk = buckets.slice(i, i + chunkSize);
     const batch = writeBatch(db);
 
-    for (const px of chunk) {
-      const docRef = doc(db, 'prices', px.id);
-      batch.set(docRef, px);
+    for (const [bucketId, bucketData] of chunk) {
+      bucketData.prices.sort((a: any, b: any) => new Date(b.date).getTime() - new Date(a.date).getTime());
+      const docRef = doc(db, 'prices', bucketId);
+      batch.set(docRef, bucketData);
     }
 
     await batch.commit();
-    console.log(`  Uploaded prices chunk ${i + chunk.length}/${allPrices.length}`);
+    console.log(`  Uploaded buckets chunk ${i + chunk.length}/${buckets.length}`);
   }
 
   console.log('Prices seeding complete!');
@@ -359,17 +389,19 @@ async function seedPrices(tickerToDocId: Record<string, { id: string, exchangeId
 
 async function main() {
   try {
-    console.log('Authenticating anonymously against local Auth emulator...');
-    await signInAnonymously(auth);
-    console.log('Authentication successful! Starting Firestore seeding...');
+    if (!isCloud) {
+      console.log('Authenticating anonymously...');
+      await signInAnonymously(auth);
+      console.log('Authentication successful! Starting Firestore seeding...');
+    }
     
     await seedExchanges();
     const tickerMap = await seedSecurities();
     await seedPrices(tickerMap);
-    console.log('Local Firestore database successfully populated with GASCI, BSE, and ECSE datasets!');
+    console.log(`Firestore database successfully populated in ${isCloud ? 'Cloud' : 'Local'} environment!`);
     process.exit(0);
   } catch (error) {
-    console.error('Error during local seeding execution:', error);
+    console.error(`Error during ${isCloud ? 'Cloud' : 'Local'} seeding execution:`, error);
     process.exit(1);
   }
 }

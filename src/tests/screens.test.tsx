@@ -65,7 +65,6 @@ describe('Markets screen tests', () => {
 
     expect(screen.getByText('Markets')).toBeInTheDocument();
     expect(screen.getByText('GASCI Index')).toBeInTheDocument();
-    expect(screen.getByText('BSE Index')).toBeInTheDocument();
     expect(screen.getByText('Relevant Corporate News')).toBeInTheDocument();
     expect(screen.getByText('Top Gainers')).toBeInTheDocument();
     expect(screen.getByText('Top Losers')).toBeInTheDocument();
@@ -134,7 +133,7 @@ describe('Markets screen tests', () => {
     expect(screen.getByText(/Session:/i)).toBeInTheDocument();
   });
 
-  it('should support clicking on an index card to view the index details, calculations, constituents, and navigate to constituent equity info', async () => {
+  it('should support clicking on an index card to view the index details and chart, and back navigate to markets', async () => {
     renderWithContext(<Markets />);
 
     await act(async () => {
@@ -150,62 +149,33 @@ describe('Markets screen tests', () => {
       fireEvent.click(gasciIndexCard);
     });
 
-    // 3. Verify that Index Profile & Methodology view is rendered
+    // 3. Verify that Index Profile view is rendered
     expect(screen.getByText('Index Profile & Methodology')).toBeInTheDocument();
     expect(screen.getByText('Guyana Stock Exchange')).toBeInTheDocument();
-    
-    // Find the collapsible accordion toggle and click it
-    const toggleBtn = screen.getByText(/Index Constituents & Weights/i);
-    expect(toggleBtn).toBeInTheDocument();
+    expect(screen.getByText('Index Trend')).toBeInTheDocument();
+
+    // 4. Verify back button is visible and click it
+    const backBtn = screen.getByText('Back to Markets Overview');
+    expect(backBtn).toBeInTheDocument();
     await act(async () => {
-      fireEvent.click(toggleBtn);
+      fireEvent.click(backBtn);
     });
 
-    // Verify methodology details are now visible inside expanded panel
-    expect(screen.getByText(/Methodology: Equal-Weighted Price Index/i)).toBeInTheDocument();
-
-    // 4. Verify constituents are listed (e.g. GBTI is a constituent of GASCI)
-    const constituentLink = screen.getByText(/Guyana Bank for Trade and Industry/i);
-    expect(constituentLink).toBeInTheDocument();
-
-    // 5. Click on the constituent link
-    await act(async () => {
-      fireEvent.click(constituentLink);
-    });
-
-    // 6. Verify that it navigates/switches to the target equity profile card
-    expect(screen.getByText('Market Profile & Fundamentals')).toBeInTheDocument();
-    expect(screen.getByText(/Guyana Bank for Trade and Industry/i)).toBeInTheDocument();
-    expect(screen.queryByText('Index Profile & Methodology')).not.toBeInTheDocument();
+    // 5. Verify we are back on the markets overview screen
+    expect(screen.getByText('GASCI Index')).toBeInTheDocument();
+    expect(screen.queryByText('Index Trend')).not.toBeInTheDocument();
   });
 
-  it('should exclude defunct equities from index calculations and constituents list', async () => {
+  it('should display only the GASCI index card', async () => {
     renderWithContext(<Markets />);
 
     await act(async () => {
       await new Promise(resolve => setTimeout(resolve, 50));
     });
 
-    const gasciIndexCard = screen.getByText('GASCI Index');
-    await act(async () => {
-      fireEvent.click(gasciIndexCard);
-    });
-
-    const toggleBtn = screen.getByText(/Index Constituents & Weights/i);
-    await act(async () => {
-      fireEvent.click(toggleBtn);
-    });
-
-    // Label should show "17 Equities" because GNCB, GTI, NBI are defunct and excluded (20 - 3 = 17)
-    expect(screen.getByText('17 Equities')).toBeInTheDocument();
-
-    // GBTI/BTI is active, so it should be visible
-    expect(screen.getByText(/Guyana Bank for Trade and Industry/i)).toBeInTheDocument();
-
-    // GNCB, GTI, NBI are inactive, so they should NOT be visible
-    expect(screen.queryByText(/Guyana National Co-operative Bank/i)).not.toBeInTheDocument();
-    expect(screen.queryByText(/Globe Trust & Investment/i)).not.toBeInTheDocument();
-    expect(screen.queryByText(/National Bank of Industry/i)).not.toBeInTheDocument();
+    const indexCards = screen.getAllByText(/^[A-Z]+ Index$/);
+    const names = indexCards.map(el => el.textContent);
+    expect(names).toEqual(['GASCI Index']);
   });
 });
 

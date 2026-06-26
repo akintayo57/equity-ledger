@@ -171,6 +171,7 @@ export const calculateHoldings = (
   let totalPortfolioUSD = 0;
 
   securities.forEach((sec) => {
+    if (sec.type === 'INDEX') return;
     const data = holdingsMap.get(sec.id);
     if (!data) return; // Keep holdings with shares === 0 to preserve history
 

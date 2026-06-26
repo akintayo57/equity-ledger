@@ -1,6 +1,6 @@
-import { Security, PriceUpdate, FXRate, Currency, IndexDefinition } from './types';
+import { Security, PriceUpdate, FXRate, Currency } from './types';
 
-export const initialSecurities: any[] = [
+const rawSecurities: any[] = [
   { id: 'sec-1', companyName: 'Guyana Bank for Trade and Industry Limited', ticker: 'BTI', exchange: 'GASCI', country: 'Guyana', currency: 'GYD', sector: 'Financials', status: 'ACTIVE', fundamentals: { peRatio: 12.5, eps: 45.2, dividendYield: 2.1, pbRatio: 1.4, roe: 15.2, lastUpdated: '2023-12-31' } },
   { id: 'sec-2', companyName: 'Demerara Bank Limited', ticker: 'DBL', exchange: 'GASCI', country: 'Guyana', currency: 'GYD', sector: 'Financials', status: 'ACTIVE', fundamentals: { peRatio: 14.1, eps: 15.0, dividendYield: 3.5, pbRatio: 2.1, roe: 18.4, lastUpdated: '2023-12-31' } },
   { id: 'sec-3', companyName: 'Banks DIH Limited', ticker: 'DIH', exchange: 'GASCI', country: 'Guyana', currency: 'GYD', sector: 'Consumer Staples', status: 'ACTIVE', fundamentals: { peRatio: 8.5, eps: 14.1, dividendYield: 4.2, pbRatio: 1.1, roe: 11.2, lastUpdated: '2023-12-31' } },
@@ -33,6 +33,25 @@ export const initialSecurities: any[] = [
   { id: 'sec-bon', companyName: 'The Bank of Nevis Limited', ticker: 'BON', exchange: 'ECSE', country: 'Eastern Caribbean', currency: 'XCD', sector: 'Financials', status: 'ACTIVE', fundamentals: { peRatio: 9.2, eps: 0.32, dividendYield: 3.3, pbRatio: 1.1, roe: 12.0, lastUpdated: '2023-12-31' } },
   { id: 'sec-ecfh', companyName: 'East Caribbean Financial Holding Company Ltd', ticker: 'ECFH', exchange: 'ECSE', country: 'Eastern Caribbean', currency: 'XCD', sector: 'Financials', status: 'ACTIVE', fundamentals: { peRatio: 10.5, eps: 1.18, dividendYield: 4.1, pbRatio: 1.3, roe: 14.5, lastUpdated: '2023-12-31' } },
   { id: 'sec-wioc', companyName: 'The West Indies Oil Company Limited', ticker: 'WIOC', exchange: 'ECSE', country: 'Eastern Caribbean', currency: 'XCD', sector: 'Energy', status: 'ACTIVE', fundamentals: { peRatio: 12.0, eps: 5.00, dividendYield: 5.0, pbRatio: 1.5, roe: 13.2, lastUpdated: '2023-12-31' } }
+];
+
+export const initialSecurities: Security[] = [
+  ...rawSecurities.map(s => ({
+    id: s.id,
+    companyName: s.companyName,
+    ticker: s.ticker,
+    exchangeId: s.exchange || 'GASCI',
+    sector: s.sector,
+    status: s.status || 'ACTIVE',
+    type: 'EQUITY',
+    fundamentals: s.fundamentals,
+    currency: s.currency
+  })),
+  { id: 'GASCI', companyName: 'Guyana Stock Exchange Index', ticker: 'GASCI', exchangeId: 'GASCI', sector: 'Market Index', status: 'ACTIVE', type: 'INDEX' },
+  { id: 'BSE', companyName: 'Barbados Stock Exchange Index', ticker: 'BSE', exchangeId: 'BSE', sector: 'Market Index', status: 'ACTIVE', type: 'INDEX' },
+  { id: 'JSE', companyName: 'Jamaica Stock Exchange Index', ticker: 'JSE', exchangeId: 'JSE', sector: 'Market Index', status: 'ACTIVE', type: 'INDEX' },
+  { id: 'TTSE', companyName: 'Trinidad and Tobago Stock Exchange Index', ticker: 'TTSE', exchangeId: 'TTSE', sector: 'Market Index', status: 'ACTIVE', type: 'INDEX' },
+  { id: 'ECSE', companyName: 'Eastern Caribbean Securities Exchange Index', ticker: 'ECSE', exchangeId: 'ECSE', sector: 'Market Index', status: 'ACTIVE', type: 'INDEX' }
 ];
 
 // Helpers to generate weekly historical prices and exchange rates over 6 months
@@ -82,7 +101,67 @@ const generateFXHistory = (fromCurrency: Currency, toCurrency: Currency, baseRat
   return fxList;
 };
 
-export const initialPrices: PriceUpdate[] = [
+export const initialFXRates: FXRate[] = [
+  ...generateFXHistory('USD', 'GYD', 208.5, 'Central Bank of Guyana'),
+  ...generateFXHistory('USD', 'TTD', 6.78, 'Central Bank TT'),
+  ...generateFXHistory('USD', 'JMD', 155.2, 'BOJ'),
+  ...generateFXHistory('USD', 'BBD', 2.02, 'Fixed'),
+  ...generateFXHistory('USD', 'XCD', 2.7, 'Fixed')
+];
+
+// Index composition specs for mock calculation only
+const mockIndexConfigs = [
+  { id: 'GASCI', scale: 10, constituentIds: ['sec-1', 'sec-2', 'sec-3', 'sec-4', 'sec-bdh', 'sec-cbi', 'sec-cci', 'sec-cjl', 'sec-dtc', 'sec-gsi', 'sec-hcl', 'sec-jps', 'sec-phi', 'sec-rbl', 'sec-rdl', 'sec-spl', 'sec-tcl'] }
+];
+
+const generateIndexPrices = (prices: PriceUpdate[]): PriceUpdate[] => {
+  const indexPrices: PriceUpdate[] = [];
+  
+  mockIndexConfigs.forEach(idx => {
+    const constituents = new Set(idx.constituentIds);
+    const exchangePrices = prices.filter(p => constituents.has(p.securityId));
+    if (exchangePrices.length === 0) return;
+    
+    const uniqueDates = Array.from(new Set(exchangePrices.map(p => p.date))).sort();
+    const priceMap = new Map<string, PriceUpdate[]>();
+    idx.constituentIds.forEach(secId => {
+      const secPrices = exchangePrices.filter(p => p.securityId === secId).sort((a, b) => a.date.localeCompare(b.date));
+      priceMap.set(secId, secPrices);
+    });
+    
+    const currency = idx.id === 'GASCI' ? 'GYD' : idx.id === 'BSE' ? 'BBD' : idx.id === 'JSE' ? 'JMD' : idx.id === 'TTSE' ? 'TTD' : 'XCD';
+    
+    uniqueDates.forEach((date, i) => {
+      let sum = 0;
+      let count = 0;
+      
+      idx.constituentIds.forEach(secId => {
+        const secPrices = priceMap.get(secId) || [];
+        const priceObj = secPrices.filter(p => p.date <= date).slice(-1)[0];
+        if (priceObj) {
+          sum += priceObj.price;
+          count++;
+        }
+      });
+      
+      const val = count > 0 ? (sum / count) * idx.scale : 0;
+      if (val > 0) {
+        indexPrices.push({
+          id: `px-${idx.id}-${i}`,
+          securityId: idx.id,
+          date,
+          price: Number(val.toFixed(2)),
+          currency: currency as any,
+          source: 'Mock Index Calculation'
+        });
+      }
+    });
+  });
+  
+  return indexPrices;
+};
+
+const rawPrices: PriceUpdate[] = [
   ...generatePriceHistory('sec-1', 820, 'GYD', 'GASCI'),
   ...generatePriceHistory('sec-2', 210, 'GYD', 'GASCI'),
   ...generatePriceHistory('sec-3', 145, 'GYD', 'GASCI'),
@@ -97,62 +176,7 @@ export const initialPrices: PriceUpdate[] = [
   ...generatePriceHistory('sec-wioc', 60.00, 'XCD', 'ECSE')
 ];
 
-export const initialFXRates: FXRate[] = [
-  ...generateFXHistory('USD', 'GYD', 208.5, 'Central Bank of Guyana'),
-  ...generateFXHistory('USD', 'TTD', 6.78, 'Central Bank TT'),
-  ...generateFXHistory('USD', 'JMD', 155.2, 'BOJ'),
-  ...generateFXHistory('USD', 'BBD', 2.02, 'Fixed'),
-  ...generateFXHistory('USD', 'XCD', 2.7, 'Fixed')
-];
-
-export const initialIndices: IndexDefinition[] = [
-  {
-    id: 'GASCI',
-    name: 'GASCI Index',
-    exchangeId: 'GASCI',
-    scale: 10,
-    flag: '🇬🇾',
-    color: 'emerald',
-    constituentIds: [
-      'sec-1', 'sec-2', 'sec-3', 'sec-4', 'sec-bdh', 'sec-cbi', 
-      'sec-cci', 'sec-cjl', 'sec-dtc', 'sec-gsi', 'sec-hcl', 
-      'sec-jps', 'sec-phi', 'sec-rbl', 'sec-rdl', 'sec-spl', 'sec-tcl'
-    ]
-  },
-  {
-    id: 'BSE',
-    name: 'BSE Index',
-    exchangeId: 'BSE',
-    scale: 1000,
-    flag: '🇧🇧',
-    color: 'yellow',
-    constituentIds: ['sec-9']
-  },
-  {
-    id: 'JSE',
-    name: 'JSE Index',
-    exchangeId: 'JSE',
-    scale: 100,
-    flag: '🇯🇲',
-    color: 'green',
-    constituentIds: ['sec-6', 'sec-7']
-  },
-  {
-    id: 'TTSE',
-    name: 'TTSE Index',
-    exchangeId: 'TTSE',
-    scale: 100,
-    flag: '🇹🇹',
-    color: 'cyan',
-    constituentIds: ['sec-5', 'sec-8']
-  },
-  {
-    id: 'ECSE',
-    name: 'ECSE Index',
-    exchangeId: 'ECSE',
-    scale: 100,
-    flag: '🇰🇳',
-    color: 'blue',
-    constituentIds: ['sec-bon', 'sec-ecfh', 'sec-wioc']
-  }
+export const initialPrices: PriceUpdate[] = [
+  ...rawPrices,
+  ...generateIndexPrices(rawPrices)
 ];

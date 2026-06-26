@@ -1,7 +1,6 @@
 import { createContext, useContext, useState, useEffect, useMemo, ReactNode } from 'react';
-import { Security, Account, Transaction, PriceUpdate, FXRate, HoldingCalculation, PortfolioSummary, Exchange, EquityNote, IndexDefinition, IndexHistoryPoint } from './types';
-import { calculateHoldings, calculateIndexHistory } from './utils';
-import { initialIndices } from './mockData';
+import { Security, Account, Transaction, PriceUpdate, FXRate, HoldingCalculation, PortfolioSummary, Exchange, EquityNote } from './types';
+import { calculateHoldings } from './utils';
 import { User } from 'firebase/auth';
 import { 
   db,
@@ -23,8 +22,6 @@ interface AppState {
   exchanges: Exchange[];
   equityNotes: EquityNote[];
   watchlist: string[];
-  indices: IndexDefinition[];
-  indexHistory: IndexHistoryPoint[];
   loading: boolean;
 }
 
@@ -42,9 +39,10 @@ interface StoreContextType extends AppState {
   addAccount: (acc: Omit<Account, 'id'>) => Promise<string>;
   addEquityNote: (note: Omit<EquityNote, 'id'>) => Promise<void>;
   deleteEquityNote: (id: string) => Promise<void>;
-  backfillIndices: () => Promise<void>;
   theme: 'light' | 'dark';
   setTheme: (t: 'light' | 'dark') => void;
+  requireEquitiesForIndex: boolean;
+  setRequireEquitiesForIndex: (val: boolean) => void;
 }
 
 const StoreContext = createContext<StoreContextType | undefined>(undefined);
@@ -55,8 +53,6 @@ export const StoreProvider = ({ children, user }: { children: ReactNode; user: U
   const [fxRates, setFXRates] = useState<FXRate[]>([]);
   const [exchanges, setExchanges] = useState<Exchange[]>([]);
   const [equityNotes, setEquityNotes] = useState<EquityNote[]>([]);
-  const [indices, setIndices] = useState<IndexDefinition[]>([]);
-  const [indexHistory, setIndexHistory] = useState<IndexHistoryPoint[]>([]);
   
   const [accounts, setAccounts] = useState<Account[]>([]);
   const [transactions, setTransactions] = useState<Transaction[]>([]);
@@ -72,6 +68,16 @@ export const StoreProvider = ({ children, user }: { children: ReactNode; user: U
   const setTheme = (newTheme: 'light' | 'dark') => {
     setThemeState(newTheme);
     localStorage.setItem('harbour_theme', newTheme);
+  };
+
+  const [requireEquitiesForIndex, setRequireEquitiesState] = useState<boolean>(() => {
+    const saved = localStorage.getItem('harbour_config_require_equities');
+    return saved !== 'false';
+  });
+
+  const setRequireEquitiesForIndex = (val: boolean) => {
+    setRequireEquitiesState(val);
+    localStorage.setItem('harbour_config_require_equities', val ? 'true' : 'false');
   };
 
   useEffect(() => {
@@ -135,7 +141,22 @@ export const StoreProvider = ({ children, user }: { children: ReactNode; user: U
 
     // 3. Sync Prices
     const unsubPrices = onSnapshot(collection(db, 'prices'), (snap) => {
-      const pxs = snap.docs.map(d => ({ ...d.data(), id: d.id } as PriceUpdate));
+      const pxs: PriceUpdate[] = [];
+      snap.docs.forEach(d => {
+        const data = d.data();
+        if (data.prices && Array.isArray(data.prices)) {
+          // Time-bucketed pattern: { securityId: '...', year: '...', prices: [...] }
+          data.prices.forEach((p: any) => {
+            pxs.push({
+              ...p,
+              id: `${p.securityId}_${p.date}`
+            });
+          });
+        } else {
+          // Legacy single-document pattern fallback
+          pxs.push({ ...data, id: d.id } as PriceUpdate);
+        }
+      });
       setPrices(pxs);
       if (localStorage.getItem('harbour_auth_mode') !== 'offline') {
         localStorage.setItem('harbour_data_prices', JSON.stringify(pxs));
@@ -160,35 +181,12 @@ export const StoreProvider = ({ children, user }: { children: ReactNode; user: U
       }
     });
 
-    // 6. Sync Indices
-    const unsubIndices = onSnapshot(collection(db, 'indices'), (snap) => {
-      let idxs = snap.docs.map(d => ({ ...d.data(), id: d.id } as IndexDefinition));
-      if (idxs.length === 0) {
-        idxs = initialIndices;
-      }
-      setIndices(idxs);
-      if (localStorage.getItem('harbour_auth_mode') !== 'offline') {
-        localStorage.setItem('harbour_data_indices', JSON.stringify(idxs));
-      }
-    });
-
-    // 7. Sync Index History
-    const unsubIndexHistory = onSnapshot(collection(db, 'indexHistory'), (snap) => {
-      const hist = snap.docs.map(d => ({ ...d.data(), id: d.id } as IndexHistoryPoint));
-      setIndexHistory(hist);
-      if (localStorage.getItem('harbour_auth_mode') !== 'offline') {
-        localStorage.setItem('harbour_data_indexHistory', JSON.stringify(hist));
-      }
-    });
-
     return () => {
       unsubExchanges();
       unsubSecurities();
       unsubPrices();
       unsubFX();
       unsubNotes();
-      unsubIndices();
-      unsubIndexHistory();
     };
   }, []);
 
@@ -287,7 +285,28 @@ export const StoreProvider = ({ children, user }: { children: ReactNode; user: U
   };
 
   const addPriceUpdate = async (px: Omit<PriceUpdate, 'id'>) => {
-    await addDoc(collection(db, 'prices'), px);
+    const year = px.date.substring(0, 4);
+    const docId = `${px.securityId}_${year}`;
+    const docRef = doc(db, 'prices', docId);
+
+    // Read-modify-write purely on the client side using the already fetched global state
+    const existingPricesForYear = prices.filter(p => p.securityId === px.securityId && p.date.startsWith(year));
+    
+    // De-duplicate if the date already exists in the bucket
+    const updatedPrices = existingPricesForYear.filter(p => p.date !== px.date);
+    updatedPrices.push(px as PriceUpdate);
+
+    // Sort by date descending
+    updatedPrices.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+
+    // Strip synthetic id before saving
+    const sanitizedPrices = updatedPrices.map(({ id, ...rest }) => rest);
+
+    if (existingPricesForYear.length > 0) {
+      await updateDoc(docRef, { prices: sanitizedPrices });
+    } else {
+      await setDoc(docRef, { securityId: px.securityId, year, prices: sanitizedPrices });
+    }
   };
 
   const addFXRate = async (fx: Omit<FXRate, 'id'>) => {
@@ -324,39 +343,6 @@ export const StoreProvider = ({ children, user }: { children: ReactNode; user: U
     await deleteDoc(doc(db, 'equityNotes', id));
   };
 
-  const backfillIndices = async () => {
-    // Seed standard index definitions to database
-    for (const idxDef of initialIndices) {
-      await setDoc(doc(db, 'indices', idxDef.id), idxDef);
-    }
-    // Calculate and write historical points
-    const currentIndices = indices.length > 0 ? indices : initialIndices;
-    for (const idxDef of currentIndices) {
-      const historyPoints = calculateIndexHistory(idxDef, prices);
-      for (const pt of historyPoints) {
-        await setDoc(doc(db, 'indexHistory', pt.id), pt);
-      }
-    }
-  };
-
-  // Automatic backfill check for local mock database in workstation mode
-  const [backfillStarted, setBackfillStarted] = useState(false);
-
-  useEffect(() => {
-    if (indices.length > 0 && prices.length > 0 && indexHistory.length === 0 && !backfillStarted) {
-      const isOffline = localStorage.getItem('harbour_auth_mode') === 'offline';
-      const isWorkstation = import.meta.env.VITE_APP_ENV === 'local' || import.meta.env.MODE === 'test';
-      if (isOffline && isWorkstation) {
-        setBackfillStarted(true);
-        console.log('Index history empty in mock workstation mode, executing automatic backfill...');
-        backfillIndices().catch(err => {
-          console.error('Auto backfill failed:', err);
-          setBackfillStarted(false);
-        });
-      }
-    }
-  }, [indices, prices, indexHistory, backfillStarted]);
-
   return (
     <StoreContext.Provider
       value={{
@@ -382,11 +368,10 @@ export const StoreProvider = ({ children, user }: { children: ReactNode; user: U
         addAccount,
         addEquityNote,
         deleteEquityNote,
-        indices,
-        indexHistory,
-        backfillIndices,
         theme,
         setTheme,
+        requireEquitiesForIndex,
+        setRequireEquitiesForIndex
       }}
     >
       {loading ? (

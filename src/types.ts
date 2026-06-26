@@ -23,6 +23,7 @@ export interface Security {
   exchangeId: string; // references Exchange.id
   sector: string;
   status: 'ACTIVE' | 'INACTIVE';
+  type: 'EQUITY' | 'INDEX' | 'BOND';
   fundamentals?: Fundamentals;
   currency?: Currency; // Optional override if different from Exchange currency
 }
@@ -125,20 +126,5 @@ export interface PortfolioSummary {
   totalReturnPct: number;
 }
 
-export interface IndexDefinition {
-  id: string; // e.g. 'GASCI', 'BSE'
-  name: string;
-  exchangeId: string;
-  scale: number;
-  flag: string;
-  color: string;
-  constituentIds: string[];
-}
 
-export interface IndexHistoryPoint {
-  id: string; // e.g. 'GASCI_2026-06-07'
-  indexId: string;
-  date: string;
-  value: number;
-}
 

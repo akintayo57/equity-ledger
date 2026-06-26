@@ -1,11 +1,11 @@
+import { useState, useMemo } from 'react';
 import { useStore } from '../store';
 import { Card, CardContent, Badge } from '../components/ui/Cards';
-import { formatMoney, formatPercentage } from '../utils';
-import { Star, TrendingUp, Newspaper, HelpCircle, ArrowUpRight, ArrowDownRight, Search, X, ArrowLeft, Info, Heart, ChevronDown, ChevronUp } from 'lucide-react';
-import { useMemo, useState } from 'react';
+import { Star, TrendingUp, Newspaper, HelpCircle, ArrowUpRight, ArrowDownRight, Search, X, ArrowLeft, Info, Heart } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { format } from 'date-fns';
+import { formatMoney, formatPercentage } from '../utils';
 
 const getFlagByExchangeId = (exchangeId: string) => {
   const flags: Record<string, string> = {
@@ -26,10 +26,12 @@ export const Markets = () => {
     equityNotes,
     watchlist, 
     toggleWatchlist,
-    indices,
-    indexHistory,
     theme
   } = useStore();
+
+  const indices = useMemo(() => {
+    return securities.filter(s => s.type === 'INDEX');
+  }, [securities]);
 
   const [selectedExchange, setSelectedExchange] = useState<'ALL' | 'BSE' | 'ECSE' | 'GASCI' | 'JSE' | 'TTSE'>('ALL');
 
@@ -37,7 +39,6 @@ export const Markets = () => {
   const [showDropdown, setShowDropdown] = useState(false);
   const [selectedSecurity, setSelectedSecurity] = useState<any | null>(null);
   const [selectedIndexId, setSelectedIndexId] = useState<'BSE' | 'ECSE' | 'GASCI' | 'JSE' | 'TTSE' | null>(null);
-  const [isCompositionExpanded, setIsCompositionExpanded] = useState(false);
   const [chartRange, setChartRange] = useState<'1M' | '3M' | '6M' | '1Y' | 'ALL'>('6M');
 
   // Search query filter
@@ -115,17 +116,18 @@ export const Markets = () => {
     return 0;
   }, [selectedSecPrices]);
 
+  const getLabel = (d: Date) => format(d, 'MMM dd');
+
   const selectedPriceHistory = useMemo(() => {
     if (!selectedSecurity) return [];
     let daysToLookBack = 180;
-    let getLabel = (d: Date) => format(d, 'MMM dd');
 
     let startDate: Date | null = null;
-    if (chartRange === '1M') { daysToLookBack = 30; getLabel = (d: Date) => format(d, 'dd MMM'); }
-    else if (chartRange === '3M') { daysToLookBack = 90; getLabel = (d: Date) => format(d, 'dd MMM'); }
-    else if (chartRange === '6M') { daysToLookBack = 180; getLabel = (d: Date) => format(d, 'MMM yy'); }
-    else if (chartRange === '1Y') { daysToLookBack = 365; getLabel = (d: Date) => format(d, 'MMM yy'); }
-    else if (chartRange === 'ALL') { daysToLookBack = Infinity; getLabel = (d: Date) => format(d, 'MMM yy'); }
+    if (chartRange === '1M') { daysToLookBack = 30; }
+    else if (chartRange === '3M') { daysToLookBack = 90; }
+    else if (chartRange === '6M') { daysToLookBack = 180; }
+    else if (chartRange === '1Y') { daysToLookBack = 365; }
+    else if (chartRange === 'ALL') { daysToLookBack = Infinity; }
 
     if (daysToLookBack !== Infinity) {
       startDate = new Date(Date.now() - daysToLookBack * 86400000);
@@ -136,46 +138,30 @@ export const Markets = () => {
       .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
 
     if (filteredRealData.length > 0) {
-      const data = filteredRealData.map(p => ({
+      return filteredRealData.map(p => ({
         date: getLabel(new Date(p.date)),
         price: p.price
       }));
-
-      if (data.length === 1) {
-        const fallbackDate = startDate || new Date(Date.now() - 30 * 86400000);
-        return [
-          { date: getLabel(fallbackDate), price: data[0].price },
-          data[0]
-        ];
-      }
-      return data;
     }
 
-    const fallbackPrice = selectedLastPrice || 0;
-    const fallbackDate = startDate || new Date(Date.now() - 30 * 86400000);
-    return [
-      { date: getLabel(fallbackDate), price: fallbackPrice },
-      { date: getLabel(new Date()), price: fallbackPrice }
-    ];
-  }, [selectedSecPrices, selectedLastPrice, chartRange, selectedSecurity]);
+    return [];
+  }, [selectedSecPrices, chartRange, selectedSecurity]);
 
-  // Helper to resolve security currency
   const getSecurityCurrency = (sec: any) => {
     if (sec.currency) return sec.currency;
     const ex = exchanges.find(e => e.id === sec.exchangeId);
     return ex ? ex.currency : 'USD';
   };
 
-  // Derived summary from stored indexHistory for all indices
   const indicesSummary = useMemo(() => {
     const summary: Record<string, { value: number; change: number; changePct: number }> = {};
     indices.forEach(idx => {
-      const hist = indexHistory
-        .filter(h => h.indexId === idx.id)
+      const hist = prices
+        .filter(h => h.securityId === idx.id)
         .sort((a, b) => a.date.localeCompare(b.date));
       if (hist.length >= 1) {
-        const current = hist[hist.length - 1].value;
-        const prev = hist.length >= 2 ? hist[hist.length - 2].value : current;
+        const current = hist[hist.length - 1].price;
+        const prev = hist.length >= 2 ? hist[hist.length - 2].price : current;
         const change = current - prev;
         const changePct = prev > 0 ? (change / prev) * 100 : 0;
         summary[idx.id] = { value: current, change, changePct };
@@ -184,72 +170,64 @@ export const Markets = () => {
       }
     });
     return summary;
-  }, [indices, indexHistory]);
+  }, [indices, prices]);
 
-  // Filter indices to only show those with at least one stock equity associated, sorted alphabetically
+  const { requireEquitiesForIndex } = useStore();
+
   const sortedIndices = useMemo(() => {
     return [...indices]
-      .filter(idx => securities.some(s => s.exchangeId === idx.exchangeId))
+      .filter(idx => !requireEquitiesForIndex || securities.some(s => s.exchangeId === idx.exchangeId && s.type === 'EQUITY'))
       .sort((a, b) => a.id.localeCompare(b.id));
-  }, [indices, securities]);
+  }, [indices, securities, requireEquitiesForIndex]);
 
-  // Find the latest price date for each exchange
   const latestDateByExchange = useMemo(() => {
     const dates: Record<string, string> = {};
-    
-    // Create a fast lookup map for security exchange IDs
-    const secExchangeMap = new Map<string, string>();
-    securities.forEach(s => {
-      secExchangeMap.set(s.id, s.exchangeId);
-    });
-
-    prices.forEach(p => {
-      const exchangeId = secExchangeMap.get(p.securityId);
-      if (exchangeId) {
-        if (!dates[exchangeId] || p.date.localeCompare(dates[exchangeId]) > 0) {
-          dates[exchangeId] = p.date;
+    const exchangePriceDates: Record<string, string[]> = {};
+    prices.forEach((p) => {
+      const sec = securities.find((s) => s.id === p.securityId);
+      if (sec) {
+        if (!exchangePriceDates[sec.exchangeId]) {
+          exchangePriceDates[sec.exchangeId] = [];
         }
+        exchangePriceDates[sec.exchangeId].push(p.date);
       }
     });
 
+    Object.keys(exchangePriceDates).forEach((exId) => {
+      const sortedDates = [...exchangePriceDates[exId]].sort((a, b) => b.localeCompare(a));
+      if (sortedDates.length > 0) {
+        dates[exId] = sortedDates[0];
+      }
+    });
     return dates;
-  }, [securities, prices]);
+  }, [prices, securities]);
 
-  // Find the global latest price date across all exchanges
   const globalLatestDate = useMemo(() => {
     const dates = Object.values(latestDateByExchange);
     if (dates.length === 0) return null;
-    return dates.reduce((latest, current) => current > latest ? current : latest, dates[0]);
+    return [...dates].sort((a, b) => b.localeCompare(a))[0];
   }, [latestDateByExchange]);
 
-  // Stored Index History for selected exchange
+
+
   const selectedIndexHistory = useMemo(() => {
     if (!selectedIndexId) return [];
-
-    let daysToLookBack = 180;
-    let getLabel = (d: Date) => format(d, 'MMM dd');
-
     let startDateStr = '';
-    if (chartRange === '1M') { daysToLookBack = 30; getLabel = (d: Date) => format(d, 'dd MMM'); }
-    else if (chartRange === '3M') { daysToLookBack = 90; getLabel = (d: Date) => format(d, 'dd MMM'); }
-    else if (chartRange === '6M') { daysToLookBack = 180; getLabel = (d: Date) => format(d, 'MMM yy'); }
-    else if (chartRange === '1Y') { daysToLookBack = 365; getLabel = (d: Date) => format(d, 'MMM yy'); }
-    else if (chartRange === 'ALL') { daysToLookBack = Infinity; getLabel = (d: Date) => format(d, 'MMM yy'); }
-
-    if (daysToLookBack !== Infinity) {
+    if (chartRange !== 'ALL') {
+      const daysToLookBack = chartRange === '1M' ? 30 :
+                           chartRange === '3M' ? 90 :
+                           chartRange === '6M' ? 180 : 365;
       const startDate = new Date(Date.now() - daysToLookBack * 86400000);
       startDateStr = format(startDate, 'yyyy-MM-dd');
     }
-
-    const filtered = indexHistory
-      .filter(h => h.indexId === selectedIndexId && (!startDateStr || h.date >= startDateStr))
+    const filtered = prices
+      .filter(h => h.securityId === selectedIndexId && (!startDateStr || h.date >= startDateStr))
       .sort((a, b) => a.date.localeCompare(b.date));
-
     return filtered.map(h => ({
       date: getLabel(new Date(h.date)),
-      rawValue: h.value
+      rawValue: h.price
     }));
-  }, [selectedIndexId, indexHistory, chartRange]);
+  }, [selectedIndexId, prices, chartRange]);
 
   const selectedIndexMetadata = useMemo(() => {
     if (!selectedIndexId) return null;
@@ -257,28 +235,11 @@ export const Markets = () => {
     if (!indexDef) return null;
 
     const ex = exchanges.find(e => e.id === indexDef.exchangeId) || {
-      name: indexDef.id === 'GASCI' ? 'Guyana Stock Exchange' :
-            indexDef.id === 'BSE' ? 'Barbados Stock Exchange' :
-            indexDef.id === 'JSE' ? 'Jamaica Stock Exchange' :
-            indexDef.id === 'TTSE' ? 'Trinidad & Tobago Stock Exchange' :
-            indexDef.id === 'ECSE' ? 'Eastern Caribbean Securities Exchange' : 'Unknown Stock Exchange',
-      country: indexDef.id === 'GASCI' ? 'Guyana' :
-               indexDef.id === 'BSE' ? 'Barbados' :
-               indexDef.id === 'JSE' ? 'Jamaica' :
-               indexDef.id === 'TTSE' ? 'Trinidad & Tobago' :
-               indexDef.id === 'ECSE' ? 'Eastern Caribbean' : 'Unknown',
-      currency: indexDef.id === 'GASCI' ? 'GYD' :
-                indexDef.id === 'BSE' ? 'BBD' :
-                indexDef.id === 'JSE' ? 'JMD' :
-                indexDef.id === 'TTSE' ? 'TTD' :
-                indexDef.id === 'ECSE' ? 'XCD' : 'USD'
+      name: indexDef.exchangeId, country: 'Unknown', currency: 'USD'
     };
-
     const exIndexInfo = indicesSummary[selectedIndexId] || { value: 0, change: 0, changePct: 0 };
-
-    // Find latest pricing date for this exchange in history
-    const hist = indexHistory
-      .filter(h => h.indexId === selectedIndexId)
+    const hist = prices
+      .filter(h => h.securityId === selectedIndexId)
       .sort((a, b) => a.date.localeCompare(b.date));
     const latestDate = hist.length > 0 ? hist[hist.length - 1].date : 'N/A';
 
@@ -290,10 +251,9 @@ export const Markets = () => {
       value: exIndexInfo.value,
       change: exIndexInfo.change,
       changePct: exIndexInfo.changePct,
-      latestDate,
-      scale: indexDef.scale
+      latestDate
     };
-  }, [selectedIndexId, indices, indexHistory, exchanges, indicesSummary]);
+  }, [selectedIndexId, indices, prices, exchanges, indicesSummary]);
 
   const activeIndexDef = useMemo(() => {
     if (!selectedIndexId) return null;
@@ -668,17 +628,13 @@ export const Markets = () => {
                   <span className="font-semibold text-slate-900 dark:text-white">{selectedIndexMetadata.currency}</span>
                 </div>
                 <div className="flex justify-between items-center text-xs">
-                  <span className="text-slate-500 dark:text-slate-400">Scale Factor</span>
-                  <span className="font-semibold text-slate-900 dark:text-white">x {selectedIndexMetadata.scale}</span>
-                </div>
-                <div className="flex justify-between items-center text-xs">
                   <span className="text-slate-500 dark:text-slate-400">Last Active Session</span>
                   <span className="font-semibold text-slate-900 dark:text-white">{selectedIndexMetadata.latestDate}</span>
                 </div>
               </div>
 
               {/* Interactive Chart */}
-              <div className="p-4 border-b border-slate-100 dark:border-slate-800 space-y-4">
+              <div className="p-4 space-y-4">
                 <div className="flex justify-between items-center">
                   <span className="text-xs font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest">Index Trend</span>
                   <div className="flex bg-slate-100 dark:bg-slate-800 rounded-lg p-0.5 space-x-1">
@@ -711,76 +667,6 @@ export const Markets = () => {
                   </ResponsiveContainer>
                 </div>
               </div>
-
-              {/* Index Constituents Collapsible Dropdown Accordion */}
-              <button
-                onClick={() => setIsCompositionExpanded(!isCompositionExpanded)}
-                className="w-full px-4 py-3 flex justify-between items-center bg-slate-50/30 dark:bg-slate-950/10 border-t border-slate-100 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-850/50 transition-colors duration-200 text-left font-bold text-xs text-slate-400 dark:text-slate-500 uppercase tracking-widest cursor-pointer"
-              >
-                <span className="flex items-center">
-                  Index Constituents & Weights
-                  <span className="text-[10px] font-semibold text-slate-500 dark:text-slate-400 bg-slate-100 dark:bg-slate-800 px-2 py-0.5 rounded ml-2 normal-case tracking-normal border border-slate-200/40 dark:border-slate-700/20">
-                    {(activeIndexDef?.constituentIds || []).length} Equities
-                  </span>
-                </span>
-                {isCompositionExpanded ? (
-                  <ChevronUp className="w-4 h-4 text-slate-400 dark:text-slate-500" />
-                ) : (
-                  <ChevronDown className="w-4 h-4 text-slate-400 dark:text-slate-500" />
-                )}
-              </button>
-
-              {isCompositionExpanded && (
-                <div className="border-t border-slate-100 dark:border-slate-800 divide-y divide-slate-100 dark:divide-slate-800">
-                  {/* Methodology Explanation */}
-                  <div className="p-4 bg-slate-50/30 dark:bg-slate-950/10">
-                    <div className="bg-slate-50 dark:bg-slate-950/40 rounded-xl p-3 border border-slate-150 dark:border-slate-800/80 text-xs text-slate-700 dark:text-slate-350 leading-relaxed space-y-2">
-                      <div className="font-semibold text-slate-900 dark:text-white flex items-center">
-                        <Info className="w-3.5 h-3.5 mr-1 text-blue-500" />
-                        Methodology: Equal-Weighted Price Index
-                      </div>
-                      <p>
-                        This index is constructed as a simple equal-weighted average of the closing prices of all constituent equities listed on the {selectedIndexMetadata.name}. The raw average is multiplied by a scaling factor of <strong>x{selectedIndexMetadata.scale}</strong> to align starting reference levels.
-                      </p>
-                      <p className="font-medium text-slate-850 dark:text-slate-200">
-                        Formula: Index Level = (Sum of Prices / N) &times; {selectedIndexMetadata.scale}
-                      </p>
-                    </div>
-                  </div>
-
-                  {/* Index Constituents Table */}
-                  <div className="p-4 divide-y divide-slate-100 dark:divide-slate-800 text-sm">
-                    {securities
-                      .filter(s => activeIndexDef?.constituentIds.includes(s.id))
-                      .map(sec => {
-                        const count = activeIndexDef?.constituentIds.length || 1;
-                        const weightPct = (1 / count) * 100;
-                        return (
-                          <div key={sec.id} className="py-3 flex justify-between items-center hover:bg-slate-55/50 dark:hover:bg-slate-800/35 px-1 rounded-lg transition-colors">
-                            <button
-                              onClick={() => {
-                                setSelectedSecurity(sec);
-                                setSelectedIndexId(null);
-                              }}
-                              className="font-bold text-blue-600 dark:text-blue-400 hover:underline text-left cursor-pointer transition-colors"
-                            >
-                              {sec.ticker}
-                              {sec.status === 'INACTIVE' && (
-                                <span className="ml-1.5 inline-flex items-center px-1.5 py-0.2 rounded text-[9px] font-bold bg-slate-100 text-slate-650 border border-slate-200 normal-case tracking-normal">
-                                  Defunct
-                                </span>
-                              )}
-                              <span className="font-normal text-xs text-slate-500 dark:text-slate-400 ml-1">— {sec.companyName}</span>
-                            </button>
-                            <span className="font-semibold text-slate-900 dark:text-white text-xs bg-slate-100 dark:bg-slate-800 px-2 py-0.5 rounded border border-slate-200/50 dark:border-slate-700/50">
-                              {weightPct.toFixed(1)}%
-                            </span>
-                          </div>
-                        );
-                      })}
-                  </div>
-                </div>
-              )}
             </div>
           </Card>
 
@@ -799,26 +685,31 @@ export const Markets = () => {
             {(() => {
               return sortedIndices.map(idx => {
                 const indexData = indicesSummary[idx.id];
-                const colorClass = idx.color === 'emerald' ? 'text-emerald-500 dark:text-emerald-400' :
-                                   idx.color === 'yellow' ? 'text-yellow-500 dark:text-yellow-400' :
-                                   idx.color === 'green' ? 'text-green-500 dark:text-green-400' :
-                                   idx.color === 'cyan' ? 'text-cyan-500 dark:text-cyan-400' :
+                const idxColor = idx.id === 'GASCI' ? 'emerald' :
+                                 idx.id === 'BSE' ? 'yellow' :
+                                 idx.id === 'JSE' ? 'green' :
+                                 idx.id === 'TTSE' ? 'cyan' :
+                                 'blue';
+                const colorClass = idxColor === 'emerald' ? 'text-emerald-500 dark:text-emerald-400' :
+                                   idxColor === 'yellow' ? 'text-yellow-500 dark:text-yellow-400' :
+                                   idxColor === 'green' ? 'text-green-500 dark:text-green-400' :
+                                   idxColor === 'cyan' ? 'text-cyan-500 dark:text-cyan-400' :
                                    'text-blue-500 dark:text-blue-400';
+                const flag = getFlagByExchangeId(idx.exchangeId);
                 return (
                   <Card 
                     key={idx.id}
                     onClick={() => {
                       setSelectedIndexId(idx.id as any);
-                      setIsCompositionExpanded(false);
                     }}
                     className="bg-white dark:bg-slate-900 border-slate-100 dark:border-slate-800 text-slate-900 dark:text-white relative overflow-hidden group transition-colors duration-300 cursor-pointer hover:border-blue-400 dark:hover:border-blue-500 select-none"
                   >
-                    <div className="absolute top-0 right-0 p-6 text-slate-100/10 dark:text-slate-800/10 font-extrabold text-5xl pointer-events-none select-none">{idx.flag}</div>
+                    <div className="absolute top-0 right-0 p-6 text-slate-100/10 dark:text-slate-800/10 font-extrabold text-5xl pointer-events-none select-none">{flag}</div>
                     <CardContent className="p-4 flex flex-col justify-between h-24 relative z-10">
                       <div className="flex items-center justify-between text-[10px] text-slate-500 dark:text-slate-400 font-bold uppercase tracking-wider">
                         <span className="flex items-center">
                           <TrendingUp className={`w-3.5 h-3.5 mr-1 ${colorClass}`} /> 
-                          {idx.name}
+                          {idx.ticker} Index
                         </span>
                         <span>{idx.id === 'GASCI' ? 'GYD' : idx.id === 'BSE' ? 'BBD' : idx.id === 'JSE' ? 'JMD' : idx.id === 'TTSE' ? 'TTD' : 'XCD'}</span>
                       </div>

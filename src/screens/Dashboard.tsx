@@ -57,6 +57,9 @@ export const Dashboard = () => {
     let cumulativeDepositsUSD = 0;
 
     sortedTxs.forEach(tx => {
+      const sec = securities.find(s => s.id === tx.securityId);
+      if (sec && sec.type === 'INDEX') return;
+
       // Find historically accurate FX rate on or before the transaction date
       let txFxRate = 1;
       if (tx.currency !== 'USD') {

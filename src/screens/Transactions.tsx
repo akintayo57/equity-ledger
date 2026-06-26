@@ -301,7 +301,7 @@ const TransactionForm = ({ onClose, initialTx, preSelectedSecurityId }: { onClos
             <div>
               <label className="block text-xs text-slate-500 mb-1">Security / Stock</label>
               <select value={secId} onChange={e => setSecId(e.target.value)} className="w-full text-sm border border-slate-350 rounded p-1.5 focus:ring-blue-500 bg-white">
-                {securities.map(s => <option key={s.id} value={s.id}>{s.ticker} - {s.companyName}</option>)}
+                {securities.filter(s => s.type !== 'INDEX').map(s => <option key={s.id} value={s.id}>{s.ticker} - {s.companyName}</option>)}
               </select>
             </div>
             
